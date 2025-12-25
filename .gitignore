@@ -1,0 +1,19 @@
+# .NET
+[Bb]in/
+[Oo]bj/
+*.user
+*.suo
+.vs/
+.idea/
+
+# React / Node
+node_modules/
+build/
+dist/
+.env
+.env.local
+npm-debug.log*
+
+# OS specifično
+Thumbs.db
+.DS_Store
