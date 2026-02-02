@@ -12,8 +12,8 @@ namespace Server.Models
         public virtual Player Player { get; set;}
 
         [Required]
-        public int GameRoomId { get; set;}
-        public virtual GameRoom GameRoom { get; set;}
+        public int GameBoardId { get; set;}
+        public virtual GameBoard GameBoard { get; set;}
 
         [Required]
         public int FromPosition { get; set;}
@@ -26,12 +26,12 @@ namespace Server.Models
 
         public DateTime TimeStamp { get; set;}
 
-        public Move(int playerId, int gameRoomId, int fromPos, int toPosition, string type)
+        public Move(int playerId, int gameBoardId, int fromPos, int toPos, string type)
         {
             PlayerId = playerId;
-            GameRoomId = gameRoomId;
+            GameBoardId = gameBoardId;
             FromPosition = fromPos;
-            ToPosition = ToPosition;
+            ToPosition = toPos;
             MoveType = type;
 
         }
