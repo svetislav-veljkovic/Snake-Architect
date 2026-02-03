@@ -12,6 +12,10 @@ namespace DAL.Models
         public int RecipientId { get; set;}
         public virtual User? Recipient { get; set;}
         public bool Accepted { get; set;}
+
+        public FriendRequest()
+        {
+        }
         public FriendRequest(int senderId, int recipientId, bool accepted)
         {
             SenderId = senderId;

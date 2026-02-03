@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace DAL.Models
 {
+
     public class Move
     {
         [Key]
@@ -25,7 +26,9 @@ namespace DAL.Models
         public string MoveType { get; set;}
 
         public DateTime TimeStamp { get; set;}
-
+        public Move()
+        {
+        }
         public Move(int playerId, int gameBoardId, int fromPos, int toPos, string type)
         {
             PlayerId = playerId;

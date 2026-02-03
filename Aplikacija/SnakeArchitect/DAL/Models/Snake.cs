@@ -6,15 +6,27 @@ namespace DAL.Models
 
     public class Snake
     {
-        
-    [Key]
-    public int ID { get; set;}
 
-    [Required]
-    public int StarPosition { get; set;}
+        [Key]
+        public int ID { get; set; }
+
+        [Required]
+        public int StarPosition { get; set; }
+
+        [Required]
+        public int EndPosition { get; set; }
     
-    [Required]
-    public int EndPosition { get; set;}  
+
+    public Snake()
+        {
+        }
+
+
+        public Snake(int startPosition, int endPosition)
+        {
+            StarPosition = startPosition;
+            EndPosition = endPosition;
+        }
+
     }
-   
 }

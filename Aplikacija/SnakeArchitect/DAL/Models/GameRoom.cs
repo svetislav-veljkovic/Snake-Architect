@@ -19,5 +19,17 @@ namespace DAL.Models
 
         public DateTime CreatedAd { get; set;}
 
+
+        public GameRoom()
+        {
+            
+        }
+
+        public GameRoom(string name,bool isactive) 
+        {
+            Name = name;
+            isActive = isactive;
+        }
+
     }
 }

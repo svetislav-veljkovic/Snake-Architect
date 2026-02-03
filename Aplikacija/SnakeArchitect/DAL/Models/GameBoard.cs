@@ -17,5 +17,16 @@ namespace DAL.Models
         public virtual ICollection<Ladder> Ladders { get; set;}
 
         public virtual GameRoom GameRoom { get; set;}
+
+
+        public GameBoard() { }
+
+       
+        public GameBoard(int row, int columns)
+        {
+            Row = row;
+            Columns = columns;
+        }
+
     }
 }

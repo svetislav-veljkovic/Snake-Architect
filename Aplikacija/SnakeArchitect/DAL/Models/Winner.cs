@@ -11,6 +11,9 @@ namespace DAL.Models
         public int PlayerId { get; set;}
         public Player? Player { get; set;}
 
+        public Winner()
+        {
+        }
         public Winner(int playerId)
         {
             PlayerId = playerId;

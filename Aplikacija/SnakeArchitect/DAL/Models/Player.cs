@@ -15,6 +15,9 @@ namespace DAL.Models
         public GameRoom? GameRoom { get; set;}
         public bool isHost { get; set;}
 
+        public Player()
+        {
+        }
         public Player(int userId, int gameId, bool host = false)
         {
             UserId = userId;

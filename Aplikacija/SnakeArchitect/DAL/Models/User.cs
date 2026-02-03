@@ -38,6 +38,9 @@ namespace DAL.Models
         public int GamesWon { get; set; }
         public int GamesLost { get; set; }
 
+        public User()
+        {
+        }
         public User(string name, string lastName, string username, string email, string password, int gamesWon, int gamesLost)
         {
             Name = name;

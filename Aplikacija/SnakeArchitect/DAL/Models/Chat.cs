@@ -13,7 +13,9 @@ namespace DAL.Models
         public virtual User? Recipient { get; set;}
         public string Content {get; set;}
         public DateTime SentAt { get; set;}
-
+        public Chat()
+        {
+        }
         public Chat(int senderId, int recipientId, string content, DateTime sentAt)
         {
             SenderId = senderId;

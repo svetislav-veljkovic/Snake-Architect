@@ -15,6 +15,9 @@ namespace DAL.Models
         public virtual GameRoom GameRoom { get; set;}
         public bool Accepted { get; set;}
 
+        public GameRequest()
+        {
+        }
         public GameRequest(int senderId, int recipientId, int gameRoomId, bool accepted)
         {
             SenderId = senderId;

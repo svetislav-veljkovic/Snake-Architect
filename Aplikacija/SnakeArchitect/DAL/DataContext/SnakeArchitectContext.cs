@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using DAL.Models; 
+using DAL.Models;
 
 namespace DAL.DataContext
 {
@@ -10,7 +10,6 @@ namespace DAL.DataContext
         {
         }
 
-        
         public DbSet<User> Users { get; set; }
         public DbSet<Player> Players { get; set; }
         public DbSet<GameRoom> GameRooms { get; set; }
@@ -29,6 +28,12 @@ namespace DAL.DataContext
         {
             base.OnModelCreating(modelBuilder);
 
+          
+            modelBuilder.Entity<GameRoom>()
+                .HasOne(gr => gr.Board)
+                .WithOne(gb => gb.GameRoom)
+                .HasForeignKey<GameBoard>("GameRoomId"); 
+
            
             modelBuilder.Entity<Chat>()
                 .HasOne(c => c.Sender)
@@ -42,7 +47,7 @@ namespace DAL.DataContext
                 .HasForeignKey(c => c.RecipientId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-           
+          
             modelBuilder.Entity<FriendRequest>()
                 .HasOne(f => f.Sender)
                 .WithMany(u => u.SentFriendRequests)
@@ -55,27 +60,31 @@ namespace DAL.DataContext
                 .HasForeignKey(f => f.RecipientId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-           
+         
             modelBuilder.Entity<FriendsList>()
                 .HasOne(fl => fl.User)
                 .WithMany(u => u.SentFriendships)
-                .HasForeignKey(fl => fl.UserId);
+                .HasForeignKey(fl => fl.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<FriendsList>()
                 .HasOne(fl => fl.Friend)
                 .WithMany(u => u.ReceivedFriendships)
-                .HasForeignKey(fl => fl.FriendId);
+                .HasForeignKey(fl => fl.FriendId)
+                .OnDelete(DeleteBehavior.Restrict);
 
-           
+            
             modelBuilder.Entity<GameRequest>()
                 .HasOne(gr => gr.Sender)
                 .WithMany(u => u.SentGameInvitations)
-                .HasForeignKey(gr => gr.SenderId);
+                .HasForeignKey(gr => gr.SenderId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<GameRequest>()
                 .HasOne(gr => gr.Recipient)
                 .WithMany(u => u.ReceivedGameInvitations)
-                .HasForeignKey(gr => gr.RecipientId);
+                .HasForeignKey(gr => gr.RecipientId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

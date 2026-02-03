@@ -20,7 +20,9 @@ namespace DAL.Models
         public int Value  { get; set;}
 
         public DateTime Timestamp { get; set;}
-
+        public Dice()
+        {
+        }
         public Dice(int playerId, int gameBoardId, int value)
         {
             PlayerId = playerId;
