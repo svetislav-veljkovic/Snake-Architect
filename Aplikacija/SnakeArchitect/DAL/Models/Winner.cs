@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Server.Models
+namespace DAL.Models
 {
     
     public class Winner

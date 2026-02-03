@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
-namespace Server.Models
+namespace DAL.Models
 {
     public class GameRoom
     {

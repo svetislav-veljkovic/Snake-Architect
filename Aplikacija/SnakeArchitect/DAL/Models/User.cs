@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
-namespace Server.Models
+namespace DAL.Models
 {
     public class User
     {
@@ -13,7 +13,7 @@ namespace Server.Models
         public string LastName { get; set;}
         [Required]
         public string Username { get; set;}
-        public string Emain { get; set;}
+        public string Email { get; set;}
 
         [JsonIgnore]
         [Required]
@@ -43,7 +43,7 @@ namespace Server.Models
             Name = name;
             LastName = lastName;
             Username = username;
-            Emain = email;
+            Email = email;
             Password = password;
             GamesWon = gamesWon;
             GamesLost = gamesLost;

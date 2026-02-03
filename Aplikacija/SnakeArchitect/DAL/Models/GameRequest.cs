@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
-namespace Server.Models
+namespace DAL.Models
 {
     public class GameRequest
     {

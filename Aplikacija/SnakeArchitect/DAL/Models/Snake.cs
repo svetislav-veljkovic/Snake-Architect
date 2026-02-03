@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.SignalR;
 
-namespace Server.Models
+namespace DAL.Models
 {
 
     public class Snake
