@@ -15,9 +15,12 @@ namespace DAL.Models
 
         [Required]
         public int EndPosition { get; set; }
-    
 
-    public Snake()
+        public int GameBoardId { get; set; }
+        public virtual GameBoard? GameBoard { get; set; }
+
+
+        public Snake()
         {
         }
 

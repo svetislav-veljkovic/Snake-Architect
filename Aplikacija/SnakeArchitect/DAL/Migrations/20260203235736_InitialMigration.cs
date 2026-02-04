@@ -28,34 +28,6 @@ namespace DAL.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Ladders",
-                columns: table => new
-                {
-                    ID = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    StartPosition = table.Column<int>(type: "integer", nullable: false),
-                    EndPosition = table.Column<int>(type: "integer", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Ladders", x => x.ID);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Snakes",
-                columns: table => new
-                {
-                    ID = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    StarPosition = table.Column<int>(type: "integer", nullable: false),
-                    EndPosition = table.Column<int>(type: "integer", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Snakes", x => x.ID);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Users",
                 columns: table => new
                 {
@@ -238,6 +210,48 @@ namespace DAL.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Ladders",
+                columns: table => new
+                {
+                    ID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    StartPosition = table.Column<int>(type: "integer", nullable: false),
+                    EndPosition = table.Column<int>(type: "integer", nullable: false),
+                    GameBoardId = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Ladders", x => x.ID);
+                    table.ForeignKey(
+                        name: "FK_Ladders_GameBoards_GameBoardId",
+                        column: x => x.GameBoardId,
+                        principalTable: "GameBoards",
+                        principalColumn: "ID",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Snakes",
+                columns: table => new
+                {
+                    ID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    StarPosition = table.Column<int>(type: "integer", nullable: false),
+                    EndPosition = table.Column<int>(type: "integer", nullable: false),
+                    GameBoardId = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Snakes", x => x.ID);
+                    table.ForeignKey(
+                        name: "FK_Snakes_GameBoards_GameBoardId",
+                        column: x => x.GameBoardId,
+                        principalTable: "GameBoards",
+                        principalColumn: "ID",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Dices",
                 columns: table => new
                 {
@@ -376,6 +390,11 @@ namespace DAL.Migrations
                 column: "SenderId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Ladders_GameBoardId",
+                table: "Ladders",
+                column: "GameBoardId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Moves_GameBoardId",
                 table: "Moves",
                 column: "GameBoardId");
@@ -394,6 +413,11 @@ namespace DAL.Migrations
                 name: "IX_Players_UserId",
                 table: "Players",
                 column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Snakes_GameBoardId",
+                table: "Snakes",
+                column: "GameBoardId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Winners_PlayerId",

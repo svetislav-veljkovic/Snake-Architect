@@ -220,10 +220,15 @@ namespace DAL.Migrations
                     b.Property<int>("EndPosition")
                         .HasColumnType("integer");
 
+                    b.Property<int>("GameBoardId")
+                        .HasColumnType("integer");
+
                     b.Property<int>("StartPosition")
                         .HasColumnType("integer");
 
                     b.HasKey("ID");
+
+                    b.HasIndex("GameBoardId");
 
                     b.ToTable("Ladders");
                 });
@@ -301,10 +306,15 @@ namespace DAL.Migrations
                     b.Property<int>("EndPosition")
                         .HasColumnType("integer");
 
+                    b.Property<int>("GameBoardId")
+                        .HasColumnType("integer");
+
                     b.Property<int>("StarPosition")
                         .HasColumnType("integer");
 
                     b.HasKey("ID");
+
+                    b.HasIndex("GameBoardId");
 
                     b.ToTable("Snakes");
                 });
@@ -480,6 +490,17 @@ namespace DAL.Migrations
                     b.Navigation("Sender");
                 });
 
+            modelBuilder.Entity("DAL.Models.Ladder", b =>
+                {
+                    b.HasOne("DAL.Models.GameBoard", "GameBoard")
+                        .WithMany("Ladders")
+                        .HasForeignKey("GameBoardId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("GameBoard");
+                });
+
             modelBuilder.Entity("DAL.Models.Move", b =>
                 {
                     b.HasOne("DAL.Models.GameBoard", "GameBoard")
@@ -502,7 +523,7 @@ namespace DAL.Migrations
             modelBuilder.Entity("DAL.Models.Player", b =>
                 {
                     b.HasOne("DAL.Models.GameRoom", "GameRoom")
-                        .WithMany()
+                        .WithMany("Players")
                         .HasForeignKey("GameRoomId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -518,6 +539,17 @@ namespace DAL.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("DAL.Models.Snake", b =>
+                {
+                    b.HasOne("DAL.Models.GameBoard", "GameBoard")
+                        .WithMany("Snakes")
+                        .HasForeignKey("GameBoardId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("GameBoard");
+                });
+
             modelBuilder.Entity("DAL.Models.Winner", b =>
                 {
                     b.HasOne("DAL.Models.Player", "Player")
@@ -529,10 +561,19 @@ namespace DAL.Migrations
                     b.Navigation("Player");
                 });
 
+            modelBuilder.Entity("DAL.Models.GameBoard", b =>
+                {
+                    b.Navigation("Ladders");
+
+                    b.Navigation("Snakes");
+                });
+
             modelBuilder.Entity("DAL.Models.GameRoom", b =>
                 {
                     b.Navigation("Board")
                         .IsRequired();
+
+                    b.Navigation("Players");
                 });
 
             modelBuilder.Entity("DAL.Models.User", b =>

@@ -22,20 +22,21 @@ namespace DAL.Models
         [Required]
         public int ToPosition { get; set;}
 
-        // Tip poteza: norman/snake/ladder
+        
         public string MoveType { get; set;}
 
         public DateTime TimeStamp { get; set;}
         public Move()
         {
         }
-        public Move(int playerId, int gameBoardId, int fromPos, int toPos, string type)
+        public Move(int playerId, int gameBoardId, int fromPos, int toPos, string type,DateTime timestamp)
         {
             PlayerId = playerId;
             GameBoardId = gameBoardId;
             FromPosition = fromPos;
             ToPosition = toPos;
             MoveType = type;
+            TimeStamp= timestamp;
 
         }
 

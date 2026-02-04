@@ -23,11 +23,12 @@ namespace DAL.Models
         public Dice()
         {
         }
-        public Dice(int playerId, int gameBoardId, int value)
+        public Dice(int playerId, int gameBoardId, int value,DateTime timestamp)
         {
             PlayerId = playerId;
             GameBoardId = gameBoardId;
             Value = value;
+            Timestamp = timestamp;
         }
 
     }

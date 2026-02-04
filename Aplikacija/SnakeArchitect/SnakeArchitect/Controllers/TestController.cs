@@ -13,15 +13,15 @@ public class TestController : ControllerBase
         _unitOfWork = unitOfWork;
     }
 
-    [HttpPost("seed-user")]
-    public async Task<IActionResult> SeedUser()
+    [HttpPost("save-user")]
+    public async Task<IActionResult> SaveUser()
     {
         
         var testUser = new User(
-            "Test",
-            "User",
-            "test_user",
-            "test@example.com",
+            "Marko",
+            "Markovic",
+            "marko",
+            "marko@gmail.com",
             "password123",
             0,
             0

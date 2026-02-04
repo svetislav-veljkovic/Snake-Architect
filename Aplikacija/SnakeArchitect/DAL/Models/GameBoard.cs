@@ -11,10 +11,8 @@ namespace DAL.Models
         public int Row { get; set;}
         [Required]
         public int Columns { get; set;}
-        [NotMapped]
-        public virtual ICollection<Snake> Snakes { get; set;}
-        [NotMapped]
-        public virtual ICollection<Ladder> Ladders { get; set;}
+        public virtual ICollection<Snake> Snakes { get; set; } = new List<Snake>();
+        public virtual ICollection<Ladder> Ladders { get; set; } = new List<Ladder>();
 
         public virtual GameRoom GameRoom { get; set;}
 

@@ -11,9 +11,8 @@ namespace DAL.Models
 
         [Required]
         public string Name { get; set;}
-        [NotMapped]
-        public virtual ICollection<Player> Players { get; set;}
-        
+        public virtual ICollection<Player> Players { get; set; } = new List<Player>();
+
         public virtual GameBoard Board { get; set;}
         public bool isActive { get; set;}
 
@@ -25,10 +24,11 @@ namespace DAL.Models
             
         }
 
-        public GameRoom(string name,bool isactive) 
+        public GameRoom(string name,bool isactive,DateTime createdAd) 
         {
             Name = name;
             isActive = isactive;
+            CreatedAd= createdAd;
         }
 
     }
