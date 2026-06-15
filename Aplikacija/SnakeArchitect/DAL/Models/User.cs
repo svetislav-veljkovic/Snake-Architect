@@ -19,18 +19,12 @@ namespace DAL.Models
         [Required]
         public string Password { get; set;}
         
-        [JsonIgnore]
-        public virtual ICollection<FriendsList> SentFriendships { get; set; }
-        [JsonIgnore]
-        public virtual ICollection<FriendsList> ReceivedFriendships { get; set; }
+ 
         [JsonIgnore]
         public virtual ICollection<Chat> SentMessages { get; set; }
         [JsonIgnore]
         public virtual ICollection<Chat> ReceivedMessages { get; set; }
-        [JsonIgnore]
-        public virtual ICollection<FriendRequest> SentFriendRequests { get; set; }
-        [JsonIgnore]
-        public virtual ICollection<FriendRequest> ReceivedFriendRequest { get; set; }
+  
         [JsonIgnore]
         public virtual ICollection<GameRequest> SentGameInvitations { get; set; }
         [JsonIgnore]

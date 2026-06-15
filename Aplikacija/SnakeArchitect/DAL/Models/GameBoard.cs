@@ -8,7 +8,7 @@ namespace DAL.Models
         [Key]
         public int ID { get; set;}
         [Required]
-        public int Row { get; set;}
+        public int Rows { get; set;}
         [Required]
         public int Columns { get; set;}
         public virtual ICollection<Snake> Snakes { get; set; } = new List<Snake>();
@@ -20,9 +20,9 @@ namespace DAL.Models
         public GameBoard() { }
 
        
-        public GameBoard(int row, int columns)
+        public GameBoard(int rows, int columns)
         {
-            Row = row;
+            Rows = rows;
             Columns = columns;
         }
 

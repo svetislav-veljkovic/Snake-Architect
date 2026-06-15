@@ -11,12 +11,15 @@ namespace DAL.Models
         public int PlayerId { get; set;}
         public Player? Player { get; set;}
 
+        public DateTime WonAt { get; set;}
+
         public Winner()
         {
         }
         public Winner(int playerId)
         {
             PlayerId = playerId;
+            WonAt= DateTime.UtcNow;
         }
     }
 }

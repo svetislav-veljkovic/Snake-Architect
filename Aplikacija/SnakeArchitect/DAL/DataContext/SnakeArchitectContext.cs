@@ -19,8 +19,6 @@ namespace DAL.DataContext
         public DbSet<Move> Moves { get; set; }
         public DbSet<Dice> Dices { get; set; }
         public DbSet<Chat> Chats { get; set; }
-        public DbSet<FriendRequest> FriendRequests { get; set; }
-        public DbSet<FriendsList> FriendsLists { get; set; }
         public DbSet<GameRequest> GameRequests { get; set; }
         public DbSet<Winner> Winners { get; set; }
 
@@ -47,33 +45,6 @@ namespace DAL.DataContext
                 .HasForeignKey(c => c.RecipientId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-          
-            modelBuilder.Entity<FriendRequest>()
-                .HasOne(f => f.Sender)
-                .WithMany(u => u.SentFriendRequests)
-                .HasForeignKey(f => f.SenderId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<FriendRequest>()
-                .HasOne(f => f.Recipient)
-                .WithMany(u => u.ReceivedFriendRequest)
-                .HasForeignKey(f => f.RecipientId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-         
-            modelBuilder.Entity<FriendsList>()
-                .HasOne(fl => fl.User)
-                .WithMany(u => u.SentFriendships)
-                .HasForeignKey(fl => fl.UserId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<FriendsList>()
-                .HasOne(fl => fl.Friend)
-                .WithMany(u => u.ReceivedFriendships)
-                .HasForeignKey(fl => fl.FriendId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            
             modelBuilder.Entity<GameRequest>()
                 .HasOne(gr => gr.Sender)
                 .WithMany(u => u.SentGameInvitations)

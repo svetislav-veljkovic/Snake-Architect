@@ -32,4 +32,22 @@ public class TestController : ControllerBase
 
         return Ok("Korisnik je uspesno upisan u bazu!");
     }
+
+    [HttpGet("get-user/{id}")]
+    public async Task<IActionResult> GetOneUser(int id)
+    {
+        try
+        {
+
+            var user = await _unitOfWork.User.GetOne(id);
+
+
+            return Ok(user);
+        }
+        catch (Exception ex)
+        {
+
+            return NotFound(ex.Message);
+        }
+    }
 }

@@ -6,6 +6,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SnakeArchitectApi", "SnakeA
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DAL", "DAL\DAL.csproj", "{CA9B4955-D4B9-4A5E-B4B0-771D68A18AC1}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BLL", "BLL\BLL.csproj", "{FDE4C86F-092F-4774-AE62-DFE3DB868876}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -20,6 +22,10 @@ Global
 		{CA9B4955-D4B9-4A5E-B4B0-771D68A18AC1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CA9B4955-D4B9-4A5E-B4B0-771D68A18AC1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CA9B4955-D4B9-4A5E-B4B0-771D68A18AC1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FDE4C86F-092F-4774-AE62-DFE3DB868876}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FDE4C86F-092F-4774-AE62-DFE3DB868876}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FDE4C86F-092F-4774-AE62-DFE3DB868876}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FDE4C86F-092F-4774-AE62-DFE3DB868876}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

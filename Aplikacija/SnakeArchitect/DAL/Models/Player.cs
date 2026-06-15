@@ -15,6 +15,8 @@ namespace DAL.Models
         public GameRoom? GameRoom { get; set;}
         public bool isHost { get; set;}
 
+        public int CurrentPosition { get; set; } 
+
         public Player()
         {
         }
@@ -23,6 +25,7 @@ namespace DAL.Models
             UserId = userId;
             GameRoomId = gameId;
             isHost = host;
+            CurrentPosition= 0;
         }
     }
 }

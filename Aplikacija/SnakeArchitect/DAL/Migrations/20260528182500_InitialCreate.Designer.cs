@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DAL.Migrations
 {
     [DbContext(typeof(SnakeArchitectContext))]
-    [Migration("20260203235736_InitialMigration")]
-    partial class InitialMigration
+    [Migration("20260528182500_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -84,55 +84,6 @@ namespace DAL.Migrations
                     b.ToTable("Dices");
                 });
 
-            modelBuilder.Entity("DAL.Models.FriendRequest", b =>
-                {
-                    b.Property<int>("ID")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ID"));
-
-                    b.Property<bool>("Accepted")
-                        .HasColumnType("boolean");
-
-                    b.Property<int>("RecipientId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("SenderId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("ID");
-
-                    b.HasIndex("RecipientId");
-
-                    b.HasIndex("SenderId");
-
-                    b.ToTable("FriendRequests");
-                });
-
-            modelBuilder.Entity("DAL.Models.FriendsList", b =>
-                {
-                    b.Property<int>("ID")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ID"));
-
-                    b.Property<int>("FriendId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("ID");
-
-                    b.HasIndex("FriendId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("FriendsLists");
-                });
-
             modelBuilder.Entity("DAL.Models.GameBoard", b =>
                 {
                     b.Property<int>("ID")
@@ -147,7 +98,7 @@ namespace DAL.Migrations
                     b.Property<int>("GameRoomId")
                         .HasColumnType("integer");
 
-                    b.Property<int>("Row")
+                    b.Property<int>("Rows")
                         .HasColumnType("integer");
 
                     b.HasKey("ID");
@@ -280,6 +231,9 @@ namespace DAL.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ID"));
 
+                    b.Property<int>("CurrentPosition")
+                        .HasColumnType("integer");
+
                     b.Property<int>("GameRoomId")
                         .HasColumnType("integer");
 
@@ -372,6 +326,9 @@ namespace DAL.Migrations
                     b.Property<int>("PlayerId")
                         .HasColumnType("integer");
 
+                    b.Property<DateTime>("WonAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.HasKey("ID");
 
                     b.HasIndex("PlayerId");
@@ -415,44 +372,6 @@ namespace DAL.Migrations
                     b.Navigation("GameBoard");
 
                     b.Navigation("Player");
-                });
-
-            modelBuilder.Entity("DAL.Models.FriendRequest", b =>
-                {
-                    b.HasOne("DAL.Models.User", "Recipient")
-                        .WithMany("ReceivedFriendRequest")
-                        .HasForeignKey("RecipientId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("DAL.Models.User", "Sender")
-                        .WithMany("SentFriendRequests")
-                        .HasForeignKey("SenderId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Recipient");
-
-                    b.Navigation("Sender");
-                });
-
-            modelBuilder.Entity("DAL.Models.FriendsList", b =>
-                {
-                    b.HasOne("DAL.Models.User", "Friend")
-                        .WithMany("ReceivedFriendships")
-                        .HasForeignKey("FriendId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("DAL.Models.User", "User")
-                        .WithMany("SentFriendships")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Friend");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("DAL.Models.GameBoard", b =>
@@ -581,17 +500,9 @@ namespace DAL.Migrations
 
             modelBuilder.Entity("DAL.Models.User", b =>
                 {
-                    b.Navigation("ReceivedFriendRequest");
-
-                    b.Navigation("ReceivedFriendships");
-
                     b.Navigation("ReceivedGameInvitations");
 
                     b.Navigation("ReceivedMessages");
-
-                    b.Navigation("SentFriendRequests");
-
-                    b.Navigation("SentFriendships");
 
                     b.Navigation("SentGameInvitations");
 
