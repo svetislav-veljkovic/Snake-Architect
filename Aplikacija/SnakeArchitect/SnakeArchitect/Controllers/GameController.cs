@@ -1,9 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.SignalR;
 using System.Security.Claims;
 using DAL.Models;
-using DAL.DTOs;
 using DAL.UnitOfWork;
+using SnakeArchitectApi;
 
 namespace SnakeArchitectApi.Controllers
 {
@@ -13,31 +14,28 @@ namespace SnakeArchitectApi.Controllers
     public class GameController : ControllerBase
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IHubContext<ChatHub> _hubContext;
 
-        public GameController(IUnitOfWork unitOfWork)
+        public GameController(IUnitOfWork unitOfWork, IHubContext<ChatHub> hubContext)
         {
             _unitOfWork = unitOfWork;
+            _hubContext = hubContext;
         }
 
-        // POST api/game/roll/{roomId}
-        // Igrač baca kockicu i odigrava potez
+       
         [HttpPost("roll/{roomId}")]
         public async Task<IActionResult> RollDice(int roomId)
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
-            // Pronađi igrača u sobi
-            var player = _unitOfWork.Player
-                .Find(p => p.UserId == userId && p.GameRoomId == roomId)
-                .FirstOrDefault();
+          
+            var room = await _unitOfWork.GameRoom.GetRoomWithDetails(roomId);
+            if (room == null)
+                return NotFound(new { message = "Soba nije pronađena." });
 
+            var player = room.Players.FirstOrDefault(p => p.UserId == userId);
             if (player == null)
                 return BadRequest(new { message = "Nisi u ovoj sobi." });
-
-            // Pronađi sobu i tablu
-            GameRoom room;
-            try { room = await _unitOfWork.GameRoom.GetOne(roomId); }
-            catch { return NotFound(new { message = "Soba nije pronađena." }); }
 
             if (!room.isActive)
                 return BadRequest(new { message = "Igra nije aktivna." });
@@ -46,30 +44,30 @@ namespace SnakeArchitectApi.Controllers
             if (board == null)
                 return BadRequest(new { message = "Tabla nije kreirana." });
 
-            // Baci kockicu (1-6)
+            
             var rng = new Random();
             var diceValue = rng.Next(1, 7);
 
-            // Sačuvaj bacanje kockice
+            
             var dice = new Dice(player.ID, board.ID, diceValue, DateTime.UtcNow);
             await _unitOfWork.Dice.Add(dice);
 
-            // Izračunaj novu poziciju
+          
             var fromPosition = player.CurrentPosition;
             var maxPosition = board.Rows * board.Columns;
             var newPosition = fromPosition + diceValue;
 
             string moveType = "normal";
 
-            // Provjeri da li je prešao kraj table (ne može ići dalje od 100)
+            
             if (newPosition > maxPosition)
             {
-                newPosition = fromPosition; // ostaje na istom mestu
+                newPosition = fromPosition; 
                 moveType = "blocked";
             }
             else
             {
-                // Provjeri zmije (glava zmije = pao si na nju)
+               
                 var snake = board.Snakes.FirstOrDefault(s => s.StarPosition == newPosition);
                 if (snake != null)
                 {
@@ -77,7 +75,7 @@ namespace SnakeArchitectApi.Controllers
                     moveType = "snake";
                 }
 
-                // Provjeri merdevine
+               
                 var ladder = board.Ladders.FirstOrDefault(l => l.StartPosition == newPosition);
                 if (ladder != null)
                 {
@@ -86,31 +84,27 @@ namespace SnakeArchitectApi.Controllers
                 }
             }
 
-            // Sačuvaj potez
+          
             var move = new Move(player.ID, board.ID, fromPosition, newPosition, moveType, DateTime.UtcNow);
             await _unitOfWork.Move.Add(move);
 
-            // Ažuriraj poziciju igrača
+            
             player.CurrentPosition = newPosition;
             _unitOfWork.Player.Update(player);
 
-            // Provjeri pobjedu (dostigao zadnje polje)
             bool isWinner = newPosition == maxPosition;
             if (isWinner)
             {
                 var winner = new Winner(player.ID);
                 await _unitOfWork.Winner.Add(winner);
 
-                // Ažuriraj statistiku
+                
                 var user = await _unitOfWork.User.GetOne(userId);
                 user.GamesWon++;
                 _unitOfWork.User.Update(user);
 
-                // Ažuriraj statistiku gubitnika
-                var losers = _unitOfWork.Player
-                    .Find(p => p.GameRoomId == roomId && p.ID != player.ID)
-                    .ToList();
-
+          
+                var losers = room.Players.Where(p => p.ID != player.ID);
                 foreach (var loser in losers)
                 {
                     var loserUser = await _unitOfWork.User.GetOne(loser.UserId);
@@ -118,12 +112,22 @@ namespace SnakeArchitectApi.Controllers
                     _unitOfWork.User.Update(loserUser);
                 }
 
-                // Zatvori sobu
+               
                 room.isActive = false;
                 _unitOfWork.GameRoom.Update(room);
             }
 
             await _unitOfWork.Save();
+
+   
+            await _hubContext.Clients.Group("game:" + roomId)
+                .SendAsync("ReceiveMove", player.ID, fromPosition, newPosition, moveType);
+
+            if (isWinner)
+            {
+                await _hubContext.Clients.Group("game:" + roomId)
+                    .SendAsync("ReceiveWinner", player.ID);
+            }
 
             return Ok(new
             {
@@ -136,42 +140,35 @@ namespace SnakeArchitectApi.Controllers
             });
         }
 
-        // GET api/game/{roomId}/state
-        // Trenutno stanje igre - pozicije svih igrača
         [HttpGet("{roomId}/state")]
         public async Task<IActionResult> GetGameState(int roomId)
         {
-            try
-            {
-                var room = await _unitOfWork.GameRoom.GetOne(roomId);
-                return Ok(new
-                {
-                    room.ID,
-                    room.isActive,
-                    Players = room.Players.Select(p => new
-                    {
-                        p.ID,
-                        p.UserId,
-                        p.isHost,
-                        p.CurrentPosition
-                    }),
-                    MaxPosition = room.Board != null ? room.Board.Rows * room.Board.Columns : 0
-                });
-            }
-            catch
-            {
+            var room = await _unitOfWork.GameRoom.GetRoomWithDetails(roomId);
+            if (room == null)
                 return NotFound(new { message = "Soba nije pronađena." });
-            }
+
+            return Ok(new
+            {
+                room.ID,
+                room.isActive,
+                Players = room.Players.Select(p => new
+                {
+                    p.ID,
+                    p.UserId,
+                    p.isHost,
+                    p.CurrentPosition
+                }),
+                MaxPosition = room.Board != null ? room.Board.Rows * room.Board.Columns : 0
+            });
         }
 
-        // GET api/game/{roomId}/moves
-        // Historija poteza u sobi
+      
         [HttpGet("{roomId}/moves")]
         public async Task<IActionResult> GetMoves(int roomId)
         {
-            GameRoom room;
-            try { room = await _unitOfWork.GameRoom.GetOne(roomId); }
-            catch { return NotFound(new { message = "Soba nije pronađena." }); }
+            var room = await _unitOfWork.GameRoom.GetRoomWithDetails(roomId);
+            if (room == null)
+                return NotFound(new { message = "Soba nije pronađena." });
 
             if (room.Board == null)
                 return Ok(new List<object>());
@@ -193,8 +190,7 @@ namespace SnakeArchitectApi.Controllers
             return Ok(moves);
         }
 
-        // GET api/game/{roomId}/winner
-        // Pobjednik sobe
+   
         [HttpGet("{roomId}/winner")]
         public async Task<IActionResult> GetWinner(int roomId)
         {

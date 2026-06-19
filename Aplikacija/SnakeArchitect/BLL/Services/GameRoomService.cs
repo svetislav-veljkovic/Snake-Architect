@@ -1,4 +1,3 @@
-
 using BLL.Services.IServices;
 using DAL.Models;
 using DAL.UnitOfWork;
@@ -54,31 +53,31 @@ namespace BLL.Services
 
         public async Task<object?> GetRoomByIdAsync(int roomId)
         {
-            try
+            var room = await _uow.GameRoom.GetRoomWithDetails(roomId);
+            if (room == null) return null;
+
+            return new
             {
-                var room = await _uow.GameRoom.GetOne(roomId);
-                return new
+                room.ID,
+                room.Name,
+                room.isActive,
+                room.CreatedAd,
+                Players = room.Players.Select(p => new
                 {
-                    room.ID,
-                    room.Name,
-                    room.isActive,
-                    room.CreatedAd,
-                    Players = room.Players.Select(p => new
-                    {
-                        p.ID,
-                        p.UserId,
-                        p.isHost,
-                        p.CurrentPosition
-                    }),
-                    Board = room.Board == null ? null : new
-                    {
-                        room.Board.ID,
-                        room.Board.Rows,
-                        room.Board.Columns
-                    }
-                };
-            }
-            catch { return null; }
+                    p.ID,
+                    p.UserId,
+                    p.isHost,
+                    p.CurrentPosition
+                }),
+                Board = room.Board == null ? null : new
+                {
+                    room.Board.ID,
+                    room.Board.Rows,
+                    room.Board.Columns,
+                    Snakes = room.Board.Snakes.Select(s => new { s.ID, s.StarPosition, s.EndPosition }),
+                    Ladders = room.Board.Ladders.Select(l => new { l.ID, l.StartPosition, l.EndPosition })
+                }
+            };
         }
 
         public async Task<(bool Success, string Message, int PlayerId)> JoinRoomAsync(int roomId, int userId)
@@ -123,7 +122,7 @@ namespace BLL.Services
                     room.isActive = false;
                     _uow.GameRoom.Update(room);
                 }
-                catch { /* Soba je verovatno obrisana */ }
+                catch {  }
             }
 
             await _uow.Save();

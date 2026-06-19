@@ -9,18 +9,19 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using SnakeArchitectApi;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ─── 1. Baza podataka (PostgreSQL + EF Core) ────────────────────────────────────
+
 builder.Services.AddDbContext<SnakeArchitectContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// ─── 2. Unit of Work ─────────────────────────────────────────────────────────────
+
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
-// ─── 3. DAL Repozitorijumi (Dependency Injection) ───────────────────────────────
+
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IPlayerRepository, PlayerRepository>();
 builder.Services.AddScoped<IGameRoomRepository, GameRoomRepository>();
@@ -35,14 +36,15 @@ builder.Services.AddScoped<IFriendsListRepository, FriendsListRepository>();
 builder.Services.AddScoped<IGameRequestRepository, GameRequestRepository>();
 builder.Services.AddScoped<IWinnerRepository, WinnerRepository>();
 
-// ─── 4. BLL Poslovni Servisi (Dependency Injection) ──────────────────────────────
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IGameRoomService, GameRoomService>();
 builder.Services.AddScoped<IGameBoardService, GameBoardService>();
 builder.Services.AddScoped<IFriendService, FriendService>();
 builder.Services.AddScoped<IChatService, ChatService>();
 
-// ─── 5. JWT Autentifikacija ──────────────────────────────────────────────────────
+builder.Services.AddScoped<IGameRequestService, GameRequestService>();
+builder.Services.AddScoped<IWinnerService, WinnerService>();
+
 var jwtKey = builder.Configuration["Jwt:Key"]
     ?? throw new InvalidOperationException("JWT Key nije postavljen u appsettings.json");
 
@@ -60,7 +62,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
         };
 
-        // Podrška za SignalR - token se šalje kroz query string
+    
         options.Events = new JwtBearerEvents
         {
             OnMessageReceived = context =>
@@ -78,11 +80,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
-// ─── 6. Osnovne MVC komponente & Real-time (SignalR) ─────────────────────────────
+
 builder.Services.AddControllers();
 builder.Services.AddSignalR();
 
-// ─── 7. CORS (Dozvola za React frontend) ─────────────────────────────────────────
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
@@ -91,11 +93,11 @@ builder.Services.AddCors(options =>
             .WithOrigins("http://localhost:5173", "http://localhost:3000")
             .AllowAnyHeader()
             .AllowAnyMethod()
-            .AllowCredentials(); // Neophodno za SignalR dugotrajne veze
+            .AllowCredentials(); 
     });
 });
 
-// ─── 8. Swagger konfiguracija sa JWT podrškom ────────────────────────────────────
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -131,17 +133,16 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────────
 var app = builder.Build();
 
-// ─── 9. Middleware Pipeline ──────────────────────────────────────────────────────
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "Snake Architect API v1");
-        c.RoutePrefix = string.Empty; // Postavlja Swagger na osnovni URL (/)
+        c.RoutePrefix = string.Empty; 
     });
 }
 
@@ -152,8 +153,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// SignalR hub rute (Biće otkomentarisane kada implementiramo Hub-ove)
-// app.MapHub<GameHub>("/hubs/game");
-// app.MapHub<ChatHub>("/hubs/chat");
+
+app.MapHub<ChatHub>("/hubs/chat");
 
 app.Run();

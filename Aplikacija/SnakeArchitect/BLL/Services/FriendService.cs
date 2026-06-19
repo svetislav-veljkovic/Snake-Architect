@@ -23,7 +23,7 @@ namespace BLL.Services
                 return new { error = "Ne možeš poslati zahtjev samom/samoj sebi." };
 
             try { await _unitOfWork.User.GetOne(recipientId); }
-            catch { return null; } // Korisnik nije pronađen
+            catch { return null; } 
 
             var existing = _unitOfWork.FriendRequest
                 .Find(fr => fr.SenderId == senderId && fr.RecipientId == recipientId)

@@ -1,4 +1,3 @@
-
 using BLL.Services.IServices;
 using DAL.DTOs;
 using DAL.Models;
@@ -19,28 +18,26 @@ namespace BLL.Services
 
         public async Task<object?> GetBoardAsync(int boardId)
         {
-            try
+            var board = await _uow.GameBoard.GetBoardWithDetails(boardId);
+            if (board == null) return null;
+
+            return new
             {
-                var board = await _uow.GameBoard.GetOne(boardId);
-                return new
-                {
-                    board.ID,
-                    board.Rows,
-                    board.Columns,
-                    Snakes = board.Snakes.Select(s => new { s.ID, s.StarPosition, s.EndPosition }),
-                    Ladders = board.Ladders.Select(l => new { l.ID, l.StartPosition, l.EndPosition })
-                };
-            }
-            catch { return null; }
+                board.ID,
+                board.Rows,
+                board.Columns,
+                Snakes = board.Snakes.Select(s => new { s.ID, s.StarPosition, s.EndPosition }),
+                Ladders = board.Ladders.Select(l => new { l.ID, l.StartPosition, l.EndPosition })
+            };
         }
 
         public async Task<(bool Success, string Message, int Id)> AddSnakeAsync(int boardId, int hostUserId, SnakeDTO dto)
         {
-            GameBoard board;
-            try { board = await _uow.GameBoard.GetOne(boardId); }
-            catch { return (false, "Tabla nije pronađena.", 0); }
+            var board = await _uow.GameBoard.GetBoardWithDetails(boardId);
+            if (board == null)
+                return (false, "Tabla nije pronađena.", 0);
 
-            if (!await IsHostOfBoard(boardId, hostUserId))
+            if (!IsHost(board, hostUserId))
                 return (false, "FORBIDDEN", 0);
 
             if (dto.StarPosition <= dto.EndPosition)
@@ -68,7 +65,11 @@ namespace BLL.Services
 
         public async Task<(bool Success, string Message)> RemoveSnakeAsync(int boardId, int snakeId, int hostUserId)
         {
-            if (!await IsHostOfBoard(boardId, hostUserId))
+            var board = await _uow.GameBoard.GetBoardWithDetails(boardId);
+            if (board == null)
+                return (false, "Tabla nije pronađena.");
+
+            if (!IsHost(board, hostUserId))
                 return (false, "FORBIDDEN");
 
             try
@@ -86,11 +87,11 @@ namespace BLL.Services
 
         public async Task<(bool Success, string Message, int Id)> AddLadderAsync(int boardId, int hostUserId, LadderDTO dto)
         {
-            GameBoard board;
-            try { board = await _uow.GameBoard.GetOne(boardId); }
-            catch { return (false, "Tabla nije pronađena.", 0); }
+            var board = await _uow.GameBoard.GetBoardWithDetails(boardId);
+            if (board == null)
+                return (false, "Tabla nije pronađena.", 0);
 
-            if (!await IsHostOfBoard(boardId, hostUserId))
+            if (!IsHost(board, hostUserId))
                 return (false, "FORBIDDEN", 0);
 
             if (dto.StartPosition >= dto.EndPosition)
@@ -118,7 +119,11 @@ namespace BLL.Services
 
         public async Task<(bool Success, string Message)> RemoveLadderAsync(int boardId, int ladderId, int hostUserId)
         {
-            if (!await IsHostOfBoard(boardId, hostUserId))
+            var board = await _uow.GameBoard.GetBoardWithDetails(boardId);
+            if (board == null)
+                return (false, "Tabla nije pronađena.");
+
+            if (!IsHost(board, hostUserId))
                 return (false, "FORBIDDEN");
 
             try
@@ -136,7 +141,11 @@ namespace BLL.Services
 
         public async Task<(bool Success, string Message)> ClearBoardAsync(int boardId, int hostUserId)
         {
-            if (!await IsHostOfBoard(boardId, hostUserId))
+            var board = await _uow.GameBoard.GetBoardWithDetails(boardId);
+            if (board == null)
+                return (false, "Tabla nije pronađena.");
+
+            if (!IsHost(board, hostUserId))
                 return (false, "FORBIDDEN");
 
             var snakes = _uow.Snake.Find(s => s.GameBoardId == boardId).ToList();
@@ -151,11 +160,9 @@ namespace BLL.Services
             return (true, "Tabla očišćena.");
         }
 
-        private async Task<bool> IsHostOfBoard(int boardId, int userId)
+        private bool IsHost(GameBoard board, int userId)
         {
-            GameBoard board;
-            try { board = await _uow.GameBoard.GetOne(boardId); }
-            catch { return false; }
+            if (board.GameRoom == null) return false;
 
             return _uow.Player
                 .Find(p => p.UserId == userId && p.GameRoomId == board.GameRoom.ID && p.isHost)

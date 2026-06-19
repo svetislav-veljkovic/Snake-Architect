@@ -14,6 +14,13 @@ namespace DAL.Repository
             _db = db;
         }
 
-       
+        public async Task<GameBoard?> GetBoardWithDetails(int id)
+        {
+            return await _db.GameBoards
+                .Include(b => b.Snakes)
+                .Include(b => b.Ladders)
+                .Include(b => b.GameRoom)
+                .FirstOrDefaultAsync(b => b.ID == id);
+        }
     }
 }

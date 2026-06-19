@@ -1,9 +1,8 @@
 ﻿using BLL.IServices;
-using DAL.UnitOfWork;
 using DAL.Models;
-using DAL.DTOs;
-using Microsoft.EntityFrameworkCore;
-using System;
+using DAL.UnitOfWork;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace BLL.Services
@@ -17,68 +16,107 @@ namespace BLL.Services
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<bool> SendGameRequestAsync(int senderId, int receiverId)
+        public async Task<(bool Success, string Message, int RequestId)> SendGameRequestAsync(int senderId, int recipientId, int gameRoomId)
         {
-            // Provera da li već postoji aktivan/pending zahtev
-            var exists = await _unitOfWork.GameRequestRepository.GetQueryable()
-                .AnyAsync(r => r.SenderId == senderId && r.ReceiverId == receiverId && r.Status == "Pending");
+            var hostPlayer = _unitOfWork.Player
+                .Find(p => p.UserId == senderId && p.GameRoomId == gameRoomId && p.isHost)
+                .FirstOrDefault();
 
-            if (exists) return false;
+            if (hostPlayer == null)
+                return (false, "Samo host može slati pozivnice.", 0);
 
-            var request = new GameRequest
-            {
-                SenderId = senderId,
-                ReceiverId = receiverId,
-                Status = "Pending",
-                CreatedAt = DateTime.UtcNow
-            };
+            if (senderId == recipientId)
+                return (false, "Ne možeš pozvati samog/samu sebe.", 0);
 
-            await _unitOfWork.GameRequestRepository.AddAsync(request);
-            return await _unitOfWork.SaveChangesAsync() > 0;
+            try { await _unitOfWork.User.GetOne(recipientId); }
+            catch { return (false, "Korisnik nije pronađen.", 0); }
+
+            var existing = _unitOfWork.GameRequest
+                .Find(gr => gr.SenderId == senderId &&
+                            gr.RecipientId == recipientId &&
+                            gr.GameRoomId == gameRoomId &&
+                            !gr.Accepted)
+                .FirstOrDefault();
+
+            if (existing != null)
+                return (false, "Pozivnica već poslana.", 0);
+
+            var alreadyIn = _unitOfWork.Player
+                .Find(p => p.UserId == recipientId && p.GameRoomId == gameRoomId)
+                .FirstOrDefault();
+
+            if (alreadyIn != null)
+                return (false, "Igrač je već u sobi.", 0);
+
+            var request = new GameRequest(senderId, recipientId, gameRoomId, false);
+            await _unitOfWork.GameRequest.Add(request);
+            await _unitOfWork.Save();
+
+            return (true, "Pozivnica poslana.", request.ID);
         }
 
-        public async Task<bool> RespondToGameRequestAsync(int requestId, bool accept)
+        public async Task<List<object>> GetIncomingRequestsAsync(int userId)
         {
-            var request = await _unitOfWork.GameRequestRepository.GetByIdAsync(requestId);
-            if (request == null || request.Status != "Pending") return false;
+            return _unitOfWork.GameRequest
+                .Find(gr => gr.RecipientId == userId && !gr.Accepted)
+                .Select(gr => (object)new
+                {
+                    gr.ID,
+                    gr.GameRoomId,
+                    gr.SenderId,
+                    SenderUsername = gr.Sender != null ? gr.Sender.Username : string.Empty,
+                    RoomName = gr.GameRoom != null ? gr.GameRoom.Name : string.Empty
+                })
+                .ToList();
+        }
 
-            if (!accept)
-            {
-                request.Status = "Rejected";
-                _unitOfWork.GameRequestRepository.Update(request);
-                return await _unitOfWork.SaveChangesAsync() > 0;
-            }
+        public async Task<(bool Success, string Message, int PlayerId, int RoomId)> AcceptGameRequestAsync(int requestId, int userId)
+        {
+            GameRequest request;
+            try { request = await _unitOfWork.GameRequest.GetOne(requestId); }
+            catch { return (false, "Pozivnica nije pronađena.", 0, 0); }
 
-            request.Status = "Accepted";
-            _unitOfWork.GameRequestRepository.Update(request);
+            if (request.RecipientId != userId)
+                return (false, "FORBIDDEN", 0, 0);
 
-            // 1. Kreiramo GameRoom za meč
-            var room = new GameRoom
-            {
-                Name = $"Meč #{request.SenderId} vs #{request.ReceiverId}",
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow
-            };
-            await _unitOfWork.GameRoomRepository.AddAsync(room);
-            await _unitOfWork.SaveChangesAsync(); // Generiše Room ID
+            GameRoom room;
+            try { room = await _unitOfWork.GameRoom.GetOne(request.GameRoomId); }
+            catch { return (false, "Soba nije pronađena.", 0, 0); }
 
-            // 2. Kreiramo GameBoard za tu sobu
-            var board = new GameBoard
-            {
-                GameRoomId = room.Id,
-                CreatedAt = DateTime.UtcNow
-            };
-            await _unitOfWork.GameBoardRepository.AddAsync(board);
-            await _unitOfWork.SaveChangesAsync();
+            if (!room.isActive)
+                return (false, "Soba više nije aktivna.", 0, 0);
 
-            // 3. Ubacujemo oba igrača na početnu poziciju (polje 1)
-            var player1 = new Player { UserId = request.SenderId, GameRoomId = room.Id, CurrentPosition = 1 };
-            var player2 = new Player { UserId = request.ReceiverId, GameRoomId = room.Id, CurrentPosition = 1 };
+            var alreadyIn = _unitOfWork.Player
+                .Find(p => p.UserId == userId && p.GameRoomId == request.GameRoomId)
+                .FirstOrDefault();
 
-            await _unitOfWork.PlayerRepository.AddAsync(player1);
-            await _unitOfWork.PlayerRepository.AddAsync(player2);
+            if (alreadyIn != null)
+                return (false, "Već si u ovoj sobi.", 0, 0);
 
-            return await _unitOfWork.SaveChangesAsync() > 0;
+            var player = new Player(userId, request.GameRoomId, false);
+            await _unitOfWork.Player.Add(player);
+
+            request.Accepted = true;
+            _unitOfWork.GameRequest.Update(request);
+
+            await _unitOfWork.Save();
+
+            return (true, "Pozivnica prihvaćena. Pridružen/a si igri.", player.ID, request.GameRoomId);
+        }
+
+        public async Task<(bool Success, string Message)> DeclineGameRequestAsync(int requestId, int userId)
+        {
+            GameRequest request;
+            try { request = await _unitOfWork.GameRequest.GetOne(requestId); }
+            catch { return (false, "Pozivnica nije pronađena."); }
+
+            if (request.RecipientId != userId && request.SenderId != userId)
+                return (false, "FORBIDDEN");
+
+            _unitOfWork.GameRequest.Delete(request);
+            await _unitOfWork.Save();
+
+            return (true, "Pozivnica odbijena.");
         }
     }
 }

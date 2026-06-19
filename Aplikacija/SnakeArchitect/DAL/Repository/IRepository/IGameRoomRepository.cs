@@ -6,6 +6,6 @@ namespace DAL.Repository.IRepository
 {
     public interface IGameRoomRepository : IRepository<GameRoom>
     {
-
+        Task<GameRoom?> GetRoomWithDetails(int id);
     }
 }

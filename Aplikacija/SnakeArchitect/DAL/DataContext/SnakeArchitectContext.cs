@@ -22,17 +22,20 @@ namespace DAL.DataContext
         public DbSet<GameRequest> GameRequests { get; set; }
         public DbSet<Winner> Winners { get; set; }
 
+        public DbSet<FriendRequest> FriendRequests { get; set; }
+        public DbSet<FriendsList> FriendsLists { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
-          
+
             modelBuilder.Entity<GameRoom>()
                 .HasOne(gr => gr.Board)
                 .WithOne(gb => gb.GameRoom)
-                .HasForeignKey<GameBoard>("GameRoomId"); 
+                .HasForeignKey<GameBoard>("GameRoomId");
 
-           
+
             modelBuilder.Entity<Chat>()
                 .HasOne(c => c.Sender)
                 .WithMany(u => u.SentMessages)
@@ -55,6 +58,32 @@ namespace DAL.DataContext
                 .HasOne(gr => gr.Recipient)
                 .WithMany(u => u.ReceivedGameInvitations)
                 .HasForeignKey(gr => gr.RecipientId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+           
+            modelBuilder.Entity<FriendRequest>()
+                .HasOne(fr => fr.Sender)
+                .WithMany()
+                .HasForeignKey(fr => fr.SenderId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<FriendRequest>()
+                .HasOne(fr => fr.Recipient)
+                .WithMany()
+                .HasForeignKey(fr => fr.RecipientId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+           
+            modelBuilder.Entity<FriendsList>()
+                .HasOne(fl => fl.User)
+                .WithMany()
+                .HasForeignKey(fl => fl.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<FriendsList>()
+                .HasOne(fl => fl.Friend)
+                .WithMany()
+                .HasForeignKey(fl => fl.FriendId)
                 .OnDelete(DeleteBehavior.Restrict);
         }
     }

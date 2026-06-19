@@ -24,7 +24,7 @@ namespace BLL.Services
                 return new { error = "Forbid" };
 
             try { await _unitOfWork.User.GetOne(dto.RecipientId); }
-            catch { return null; } // Primatelj nije pronađen
+            catch { return null; } 
 
             if (string.IsNullOrWhiteSpace(dto.Content))
                 return new { error = "Poruka ne može biti prazna." };
