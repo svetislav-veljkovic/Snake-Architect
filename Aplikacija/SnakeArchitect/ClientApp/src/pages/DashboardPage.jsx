@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import React from "react";
 import ChatPanel from "../components/ChatPanel.jsx";
 import FriendsPanel from "../components/FriendsPanel.jsx";
@@ -223,9 +223,8 @@ export default function DashboardPage() {
       <div className="topbar">
         <div>
           <p className="eyebrow">Kontrolna tabla</p>
-          <h1>Zdravo, {profile?.name || user?.username || "igracu"}</h1>
+          <h1>{profile?.username || user?.username || "Igrac"}</h1>
         </div>
-        <span className="turn-pill">Polling: 2s</span>
       </div>
 
       {notice && <p className="notice top">{notice}</p>}
@@ -323,7 +322,7 @@ export default function DashboardPage() {
                   <span>
                     <strong>{room.name}</strong>
                     <small>
-                      {room.isStarted ? "u toku" : "cekaonica"} � {room.playerCount ?? 0} igraca
+                      {room.isStarted ? "u toku" : "cekaonica"} ï¿½ {room.playerCount ?? 0} igraca
                     </small>
                   </span>
                   <span className="room-item-action">
@@ -380,37 +379,33 @@ export default function DashboardPage() {
           sentRequests={sentRequests}
         />
 
-        <ChatPanel
-          friends={friends}
-          onSelectFriend={setSelectedFriendId}
-          selectedFriendId={selectedFriendId}
-        />
       </div>
     </>
   );
 
   const roomView = selectedRoomId ? (
-    <div className="room-with-chat">
-      <GameRoomPage
-        friends={friends}
-        gameRequests={gameRequests}
-        onAcceptGameRequest={acceptGameRequest}
-        onCloseRoom={() => setSelectedRoomId(null)}
-        onDeclineGameRequest={declineGameRequest}
-        onRefreshDashboard={refreshDashboard}
-        roomId={selectedRoomId}
-      />
-      <ChatPanel
-        friends={friends}
-        onSelectFriend={setSelectedFriendId}
-        roomName={selectedRoomName}
-        selectedFriendId={selectedFriendId}
-      />
-    </div>
+    <GameRoomPage
+      friends={friends}
+      gameRequests={gameRequests}
+      onAcceptGameRequest={acceptGameRequest}
+      onCloseRoom={() => setSelectedRoomId(null)}
+      onDeclineGameRequest={declineGameRequest}
+      onRefreshDashboard={refreshDashboard}
+      roomId={selectedRoomId}
+    />
   ) : null;
+
+  const chatPanelNode = (
+    <ChatPanel
+      friends={friends}
+      onSelectFriend={setSelectedFriendId}
+      selectedFriendId={selectedFriendId}
+    />
+  );
 
   return (
     <AppShell
+      chatPanel={chatPanelNode}
       currentView={selectedRoomId ? "room" : "dashboard"}
       gameRequestCount={gameRequests.length}
       onGoHome={() => setSelectedRoomId(null)}

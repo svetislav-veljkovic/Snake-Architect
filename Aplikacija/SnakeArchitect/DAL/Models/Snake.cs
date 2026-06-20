@@ -1,12 +1,9 @@
-using System.ComponentModel.DataAnnotations;
-using Microsoft.AspNetCore.SignalR;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace DAL.Models
 {
-
     public class Snake
     {
-
         [Key]
         public int ID { get; set; }
 
@@ -19,17 +16,12 @@ namespace DAL.Models
         public int GameBoardId { get; set; }
         public virtual GameBoard? GameBoard { get; set; }
 
-
-        public Snake()
-        {
-        }
-
+        public Snake() { }
 
         public Snake(int startPosition, int endPosition)
         {
             StarPosition = startPosition;
             EndPosition = endPosition;
         }
-
     }
 }

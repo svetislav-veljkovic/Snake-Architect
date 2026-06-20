@@ -1,6 +1,5 @@
+﻿import React from "react";
 
-
-import React from "react";
 export default function Lobby({
   canStart,
   friends,
@@ -39,16 +38,16 @@ export default function Lobby({
             <p className="muted">Jos niko nije usao. Pozovi prijatelje.</p>
           )}
           {players.map((player) => {
-            const label = userNames[player.userId] || `Korisnik ${player.userId}`;
+            const username = userNames[player.userId] || ("Korisnik " + player.userId);
+            const position = Math.max(1, player.currentPosition || 1);
             return (
               <div className="list-row" key={player.id}>
                 <span>
-                  <strong>{label}</strong>
-                  <small>
-                    {player.isHost
-                      ? "Host"
-                      : `Pozicija ${Math.max(1, player.currentPosition || 1)}`}
-                  </small>
+                  <strong>
+                    {username}
+                    {player.isHost ? " (host)" : ""}
+                  </strong>
+                  <small>pozicija {position}</small>
                 </span>
               </div>
             );
@@ -70,7 +69,7 @@ export default function Lobby({
               {friends.map((friend) => (
                 <div className="list-row" key={friend.friendId}>
                   <span>
-                    <strong>{friend.friendUsername || `Korisnik ${friend.friendId}`}</strong>
+                    <strong>{friend.friendUsername || ("Korisnik " + friend.friendId)}</strong>
                     <small>{friend.friendName || "prijatelj"}</small>
                   </span>
                   <button onClick={() => onInviteFriend(friend.friendId)}>Pozovi</button>
@@ -91,7 +90,7 @@ export default function Lobby({
               {roomRequests.map((request) => (
                 <div className="list-row stacked" key={request.id}>
                   <span>
-                    <strong>{request.senderUsername || `Korisnik ${request.senderId}`}</strong>
+                    <strong>{request.senderUsername || ("Korisnik " + request.senderId)}</strong>
                     <small>
                       {request.isJoinRequest ? "zeli da udje" : "poziv za sobu"}
                     </small>

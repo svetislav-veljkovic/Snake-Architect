@@ -29,12 +29,10 @@ namespace DAL.DataContext
         {
             base.OnModelCreating(modelBuilder);
 
-
             modelBuilder.Entity<GameRoom>()
                 .HasOne(gr => gr.Board)
                 .WithOne(gb => gb.GameRoom)
                 .HasForeignKey<GameBoard>("GameRoomId");
-
 
             modelBuilder.Entity<Chat>()
                 .HasOne(c => c.Sender)
@@ -60,7 +58,6 @@ namespace DAL.DataContext
                 .HasForeignKey(gr => gr.RecipientId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-           
             modelBuilder.Entity<FriendRequest>()
                 .HasOne(fr => fr.Sender)
                 .WithMany()
@@ -73,7 +70,6 @@ namespace DAL.DataContext
                 .HasForeignKey(fr => fr.RecipientId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-           
             modelBuilder.Entity<FriendsList>()
                 .HasOne(fl => fl.User)
                 .WithMany()

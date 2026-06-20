@@ -217,7 +217,7 @@ namespace DAL.Migrations
                 {
                     ID = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    StartPosition = table.Column<int>(type: "integer", nullable: false),
+                    StarPosition = table.Column<int>(type: "integer", nullable: false),
                     EndPosition = table.Column<int>(type: "integer", nullable: false),
                     GameBoardId = table.Column<int>(type: "integer", nullable: false)
                 },

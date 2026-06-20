@@ -226,7 +226,7 @@ namespace DAL.Migrations
                     b.Property<int>("GameBoardId")
                         .HasColumnType("integer");
 
-                    b.Property<int>("StartPosition")
+                    b.Property<int>("StarPosition")
                         .HasColumnType("integer");
 
                     b.HasKey("ID");

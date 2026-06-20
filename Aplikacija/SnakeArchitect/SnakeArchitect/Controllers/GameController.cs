@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using System.Security.Claims;
@@ -31,7 +31,7 @@ namespace SnakeArchitectApi.Controllers
           
             var room = await _unitOfWork.GameRoom.GetRoomWithDetails(roomId);
             if (room == null)
-                return NotFound(new { message = "Soba nije pronađena." });
+                return NotFound(new { message = "Soba nije pronaÄ‘ena." });
 
             var player = room.Players.FirstOrDefault(p => p.UserId == userId);
             if (player == null)
@@ -145,7 +145,7 @@ namespace SnakeArchitectApi.Controllers
         {
             var room = await _unitOfWork.GameRoom.GetRoomWithDetails(roomId);
             if (room == null)
-                return NotFound(new { message = "Soba nije pronađena." });
+                return NotFound(new { message = "Soba nije pronaÄ‘ena." });
 
             return Ok(new
             {
@@ -168,7 +168,7 @@ namespace SnakeArchitectApi.Controllers
         {
             var room = await _unitOfWork.GameRoom.GetRoomWithDetails(roomId);
             if (room == null)
-                return NotFound(new { message = "Soba nije pronađena." });
+                return NotFound(new { message = "Soba nije pronaÄ‘ena." });
 
             if (room.Board == null)
                 return Ok(new List<object>());
@@ -196,7 +196,7 @@ namespace SnakeArchitectApi.Controllers
         {
             var room = _unitOfWork.GameRoom.Find(r => r.ID == roomId).FirstOrDefault();
             if (room == null)
-                return NotFound(new { message = "Soba nije pronađena." });
+                return NotFound(new { message = "Soba nije pronaÄ‘ena." });
 
             var playerIds = _unitOfWork.Player
                 .Find(p => p.GameRoomId == roomId)
@@ -227,9 +227,9 @@ namespace SnakeArchitectApi.Controllers
         {
             return moveType switch
             {
-                "snake" => $"Bacio/la si {diceValue}. Pao/pala si na zmiju! {from + diceValue} → {to}",
-                "ladder" => $"Bacio/la si {diceValue}. Pronašao/la si merdevine! {from + diceValue} → {to}",
-                "blocked" => $"Bacio/la si {diceValue}. Ne možeš ići dalje od kraja table.",
+                "snake" => $"Bacio/la si {diceValue}. Pao/pala si na zmiju! {from + diceValue} â†’ {to}",
+                "ladder" => $"Bacio/la si {diceValue}. PronaÅ¡ao/la si merdevine! {from + diceValue} â†’ {to}",
+                "blocked" => $"Bacio/la si {diceValue}. Ne moÅ¾eÅ¡ iÄ‡i dalje od kraja table.",
                 _ => $"Bacio/la si {diceValue}. Pomjeren/a sa {from} na {to}."
             };
         }

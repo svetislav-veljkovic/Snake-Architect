@@ -1,4 +1,4 @@
-:root {
+﻿:root {
   color: #18202f;
   background: #f4f7fb;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -251,7 +251,7 @@ label {
 .app-shell {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 260px minmax(0, 1fr);
+  grid-template-columns: 340px minmax(0, 1fr);
   background: #f4f7fb;
 }
 
@@ -571,39 +571,55 @@ label {
 }
 
 /* ROOM LAYOUT */
-.room-with-chat {
+/* .room-with-chat removed - chat is in sidebar now */
+
+.room-layout {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.room-layout .topbar,
+.room-layout .notice {
+  grid-column: 1 / -1;
+}
+
+.room-layout .room-body {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 340px;
   gap: 16px;
   align-items: start;
 }
 
-.room-layout {
+.room-layout .room-body .board-area {
+  grid-column: 1;
   min-width: 0;
+}
+
+.room-layout .room-body .right-panel {
+  grid-column: 2;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
+  grid-template-rows: auto auto;
   gap: 16px;
-  align-items: start;
-}
-
-.full-row {
-  grid-column: 1 / -1;
-}
-
-.board-panel,
-.control-column,
-.activity-column {
-  min-width: 0;
-  display: grid;
-  gap: 16px;
-}
-
-.control-column {
   align-content: start;
+  min-width: 0;
 }
 
-.activity-column {
-  grid-column: 1 / -1;
+.sidebar-chat {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  flex: 1;
+}
+
+.sidebar-chat .chat-panel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .board-wrap {
@@ -928,3 +944,4 @@ label {
     min-width: 620px;
   }
 }
+

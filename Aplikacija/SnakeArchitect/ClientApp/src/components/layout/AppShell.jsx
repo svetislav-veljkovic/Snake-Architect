@@ -1,14 +1,18 @@
-import { useAuth } from "../../context/AuthContext.jsx";
+﻿import { useAuth } from "../../context/AuthContext.jsx";
 import React from "react";
 
 export default function AppShell({
   children,
   currentView,
-  gameRequestCount,
   onGoHome,
-  selectedRoomName
+  selectedRoomName,
+  chatPanel
 }) {
   const { logout, user } = useAuth();
+  const dashboardActive = currentView === "dashboard";
+  const roomActive = currentView === "room";
+  const dashboardClass = "nav-button" + (dashboardActive ? " active" : "");
+  const roomClass = "nav-button" + (roomActive ? " active" : "");
 
   return (
     <div className="app-shell">
@@ -23,13 +27,13 @@ export default function AppShell({
 
         <div className="sidebar-block">
           <button
-            className={`nav-button ${currentView === "dashboard" ? "active" : ""}`}
+            className={dashboardClass}
             onClick={onGoHome}
           >
             Pocetna
           </button>
           <button
-            className={`nav-button ${currentView === "room" ? "active" : ""}`}
+            className={roomClass}
             onClick={selectedRoomName ? undefined : onGoHome}
             disabled={!selectedRoomName}
           >
@@ -37,15 +41,9 @@ export default function AppShell({
           </button>
         </div>
 
-        <div className="sidebar-note">
-          <span>{gameRequestCount}</span>
-          <p>aktivnih poziva i zahteva za igru</p>
-        </div>
-
-        {selectedRoomName && (
-          <div className="sidebar-note soft">
-            <span>Live</span>
-            <p>{selectedRoomName}</p>
+        {chatPanel && (
+          <div className="sidebar-chat">
+            {chatPanel}
           </div>
         )}
 
