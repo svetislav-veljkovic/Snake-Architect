@@ -15,6 +15,7 @@ namespace DAL.Models
 
         public virtual GameBoard Board { get; set;}
         public bool isActive { get; set;}
+        public bool IsStarted { get; set; }
 
         public DateTime CreatedAd { get; set;}
 
@@ -28,6 +29,7 @@ namespace DAL.Models
         {
             Name = name;
             isActive = isactive;
+            IsStarted = false;
             CreatedAd= createdAd;
         }
 

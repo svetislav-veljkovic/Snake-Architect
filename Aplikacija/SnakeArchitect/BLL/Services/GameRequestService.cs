@@ -55,6 +55,49 @@ namespace BLL.Services
             return (true, "Pozivnica poslana.", request.ID);
         }
 
+        public async Task<(bool Success, string Message, int RequestId)> RequestJoinGameAsync(int senderId, int gameRoomId)
+        {
+            GameRoom room;
+            try { room = await _unitOfWork.GameRoom.GetOne(gameRoomId); }
+            catch { return (false, "Soba nije pronađena.", 0); }
+
+            if (!room.isActive)
+                return (false, "Soba nije aktivna.", 0);
+
+            if (room.IsStarted)
+                return (false, "Partija je već počela.", 0);
+
+            var alreadyIn = _unitOfWork.Player
+                .Find(p => p.UserId == senderId && p.GameRoomId == gameRoomId)
+                .FirstOrDefault();
+
+            if (alreadyIn != null)
+                return (false, "Već si u ovoj sobi.", 0);
+
+            var host = _unitOfWork.Player
+                .Find(p => p.GameRoomId == gameRoomId && p.isHost)
+                .FirstOrDefault();
+
+            if (host == null)
+                return (false, "Host nije pronađen.", 0);
+
+            var existing = _unitOfWork.GameRequest
+                .Find(gr => gr.SenderId == senderId &&
+                            gr.RecipientId == host.UserId &&
+                            gr.GameRoomId == gameRoomId &&
+                            !gr.Accepted)
+                .FirstOrDefault();
+
+            if (existing != null)
+                return (false, "Zahtev za ulazak je već poslat.", 0);
+
+            var request = new GameRequest(senderId, host.UserId, gameRoomId, false);
+            await _unitOfWork.GameRequest.Add(request);
+            await _unitOfWork.Save();
+
+            return (true, "Zahtev za ulazak je poslat hostu.", request.ID);
+        }
+
         public async Task<List<object>> GetIncomingRequestsAsync(int userId)
         {
             return _unitOfWork.GameRequest
@@ -64,6 +107,7 @@ namespace BLL.Services
                     gr.ID,
                     gr.GameRoomId,
                     gr.SenderId,
+                    IsJoinRequest = gr.GameRoom != null && gr.GameRoom.Players.Any(p => p.UserId == userId && p.isHost),
                     SenderUsername = gr.Sender != null ? gr.Sender.Username : string.Empty,
                     RoomName = gr.GameRoom != null ? gr.GameRoom.Name : string.Empty
                 })
@@ -86,14 +130,20 @@ namespace BLL.Services
             if (!room.isActive)
                 return (false, "Soba više nije aktivna.", 0, 0);
 
+            var userIsHost = _unitOfWork.Player
+                .Find(p => p.UserId == userId && p.GameRoomId == request.GameRoomId && p.isHost)
+                .Any();
+
+            var joiningUserId = userIsHost ? request.SenderId : request.RecipientId;
+
             var alreadyIn = _unitOfWork.Player
-                .Find(p => p.UserId == userId && p.GameRoomId == request.GameRoomId)
+                .Find(p => p.UserId == joiningUserId && p.GameRoomId == request.GameRoomId)
                 .FirstOrDefault();
 
             if (alreadyIn != null)
                 return (false, "Već si u ovoj sobi.", 0, 0);
 
-            var player = new Player(userId, request.GameRoomId, false);
+            var player = new Player(joiningUserId, request.GameRoomId, false);
             await _unitOfWork.Player.Add(player);
 
             request.Accepted = true;

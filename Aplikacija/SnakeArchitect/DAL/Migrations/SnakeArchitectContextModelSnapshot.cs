@@ -197,6 +197,9 @@ namespace DAL.Migrations
                     b.Property<DateTime>("CreatedAd")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<bool>("IsStarted")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");

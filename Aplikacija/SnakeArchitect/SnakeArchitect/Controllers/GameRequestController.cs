@@ -31,6 +31,18 @@ namespace SnakeArchitectApi.Controllers
             return Ok(new { requestId = result.RequestId, message = result.Message });
         }
 
+        [HttpPost("join/{roomId}")]
+        public async Task<IActionResult> RequestJoinGame(int roomId)
+        {
+            var senderId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            var result = await _gameRequestService.RequestJoinGameAsync(senderId, roomId);
+
+            if (!result.Success)
+                return BadRequest(new { message = result.Message });
+
+            return Ok(new { requestId = result.RequestId, message = result.Message });
+        }
+
        
         [HttpGet("incoming")]
         public async Task<IActionResult> GetIncomingRequests()

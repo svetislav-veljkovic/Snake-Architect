@@ -12,6 +12,7 @@ namespace BLL.Services.IServices
         Task<IEnumerable<object>> GetActiveRoomsAsync();
         Task<object?> GetRoomByIdAsync(int roomId);
         Task<(bool Success, string Message, int PlayerId)> JoinRoomAsync(int roomId, int userId);
+        Task<(bool Success, string Message)> StartRoomAsync(int roomId, int userId);
         Task<(bool Success, string Message)> LeaveRoomAsync(int roomId, int userId);
         Task<(bool Success, string Message)> DeleteRoomAsync(int roomId, int userId);
         Task<bool> IsHostAsync(int roomId, int userId);

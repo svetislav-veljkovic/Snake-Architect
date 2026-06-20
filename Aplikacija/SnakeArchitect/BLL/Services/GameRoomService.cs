@@ -45,6 +45,7 @@ namespace BLL.Services
                     r.ID,
                     r.Name,
                     r.isActive,
+                    r.IsStarted,
                     r.CreatedAd,
                     PlayerCount = r.Players.Count
                 })
@@ -61,6 +62,7 @@ namespace BLL.Services
                 room.ID,
                 room.Name,
                 room.isActive,
+                room.IsStarted,
                 room.CreatedAd,
                 Players = room.Players.Select(p => new
                 {
@@ -89,6 +91,9 @@ namespace BLL.Services
             if (!room.isActive)
                 return (false, "Soba nije aktivna.", 0);
 
+            if (room.IsStarted)
+                return (false, "Partija je već počela.", 0);
+
             var alreadyIn = _uow.Player
                 .Find(p => p.UserId == userId && p.GameRoomId == roomId)
                 .FirstOrDefault();
@@ -101,6 +106,32 @@ namespace BLL.Services
             await _uow.Save();
 
             return (true, "Uspješno si se pridružio/la sobi.", player.ID);
+        }
+
+        public async Task<(bool Success, string Message)> StartRoomAsync(int roomId, int userId)
+        {
+            var room = await _uow.GameRoom.GetRoomWithDetails(roomId);
+            if (room == null)
+                return (false, "Soba nije pronađena.");
+
+            if (!await IsHostAsync(roomId, userId))
+                return (false, "FORBIDDEN");
+
+            if (room.IsStarted)
+                return (false, "Partija je već pokrenuta.");
+
+            if (room.Board == null)
+                return (false, "Tabla nije kreirana.");
+
+            if (room.Players.Count < 2)
+                return (false, "Potrebna su najmanje dva igrača za početak partije.");
+
+            room.IsStarted = true;
+            room.isActive = true;
+            _uow.GameRoom.Update(room);
+            await _uow.Save();
+
+            return (true, "Partija je pokrenuta.");
         }
 
         public async Task<(bool Success, string Message)> LeaveRoomAsync(int roomId, int userId)

@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DAL.Migrations
 {
     [DbContext(typeof(SnakeArchitectContext))]
-    [Migration("20260619185924_UpdateGameLogic")]
-    partial class UpdateGameLogic
+    [Migration("20260620165148_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -199,6 +199,9 @@ namespace DAL.Migrations
 
                     b.Property<DateTime>("CreatedAd")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsStarted")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Name")
                         .IsRequired()

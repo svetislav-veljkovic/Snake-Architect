@@ -40,6 +40,9 @@ namespace BLL.Services
             if (!IsHost(board, hostUserId))
                 return (false, "FORBIDDEN", 0);
 
+            if (board.GameRoom?.IsStarted == true)
+                return (false, "Tabla se ne može menjati nakon početka partije.", 0);
+
             if (dto.StarPosition <= dto.EndPosition)
                 return (false, "Glava zmije mora biti na višoj poziciji od repa.", 0);
 
@@ -72,6 +75,9 @@ namespace BLL.Services
             if (!IsHost(board, hostUserId))
                 return (false, "FORBIDDEN");
 
+            if (board.GameRoom?.IsStarted == true)
+                return (false, "Tabla se ne može menjati nakon početka partije.");
+
             try
             {
                 var snake = await _uow.Snake.GetOne(snakeId);
@@ -93,6 +99,9 @@ namespace BLL.Services
 
             if (!IsHost(board, hostUserId))
                 return (false, "FORBIDDEN", 0);
+
+            if (board.GameRoom?.IsStarted == true)
+                return (false, "Tabla se ne može menjati nakon početka partije.", 0);
 
             if (dto.StartPosition >= dto.EndPosition)
                 return (false, "Dno merdevina mora biti na nižoj poziciji od vrha.", 0);
@@ -126,6 +135,9 @@ namespace BLL.Services
             if (!IsHost(board, hostUserId))
                 return (false, "FORBIDDEN");
 
+            if (board.GameRoom?.IsStarted == true)
+                return (false, "Tabla se ne može menjati nakon početka partije.");
+
             try
             {
                 var ladder = await _uow.Ladder.GetOne(ladderId);
@@ -147,6 +159,9 @@ namespace BLL.Services
 
             if (!IsHost(board, hostUserId))
                 return (false, "FORBIDDEN");
+
+            if (board.GameRoom?.IsStarted == true)
+                return (false, "Tabla se ne može menjati nakon početka partije.");
 
             var snakes = _uow.Snake.Find(s => s.GameBoardId == boardId).ToList();
             foreach (var s in snakes)

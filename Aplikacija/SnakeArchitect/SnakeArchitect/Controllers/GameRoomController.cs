@@ -3,6 +3,7 @@ using BLL.Services.IServices;
 using DAL.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using System.Security.Claims;
 using System.Threading.Tasks;
 
@@ -14,10 +15,12 @@ namespace SnakeArchitectApi.Controllers
     public class GameRoomController : ControllerBase
     {
         private readonly IGameRoomService _gameRoomService;
+        private readonly IHubContext<ChatHub> _hubContext;
 
-        public GameRoomController(IGameRoomService gameRoomService)
+        public GameRoomController(IGameRoomService gameRoomService, IHubContext<ChatHub> hubContext)
         {
             _gameRoomService = gameRoomService;
+            _hubContext = hubContext;
         }
 
         [HttpPost]
@@ -64,6 +67,24 @@ namespace SnakeArchitectApi.Controllers
                 return BadRequest(new { message = result.Message });
 
             return Ok(new { playerId = result.PlayerId, message = result.Message });
+        }
+
+        [HttpPost("{id}/start")]
+        public async Task<IActionResult> StartRoom(int id)
+        {
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
+            var result = await _gameRoomService.StartRoomAsync(id, userId);
+            if (!result.Success)
+            {
+                if (result.Message == "FORBIDDEN")
+                    return Forbid();
+
+                return BadRequest(new { message = result.Message });
+            }
+
+            await _hubContext.Clients.Group("game:" + id).SendAsync("GameStarted");
+            return Ok(new { message = result.Message });
         }
 
         [HttpPost("{id}/leave")]
