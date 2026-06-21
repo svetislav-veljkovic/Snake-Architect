@@ -133,6 +133,8 @@ export default function GameRoomPage({
   }, [loadRoom, roomId, token, user?.username]);
 
   const players = room?.players ?? [];
+  const isPlayer = players.some((p) => p.userId == user?.userId);
+
   const board = room?.board;
   const isHost = players.some(
     (player) => player.userId === user?.userId && player.isHost
@@ -150,7 +152,8 @@ export default function GameRoomPage({
     room?.isStarted &&
       room?.isActive &&
       currentPlayer?.userId === user?.userId &&
-      !winner?.hasWinner
+      !winner?.hasWinner &&
+      isPlayer
   );
 
   if (!room) {
@@ -278,35 +281,46 @@ export default function GameRoomPage({
 
         <aside className='right-panel'>
           <div className='control-column'>
-            {!room.isStarted && isHost ? (
-              <BoardEditor
-                board={board}
-                disabled={!canEditBoard}
-                mode={editorMode}
-                onAdd={addBoardElement}
-                onClear={clearBoard}
-                onModeChange={setEditorMode}
-                selectedPositions={selectedPositions}
-              />
-            ) : (
-              <div className='panel compact'>
-                <p className='eyebrow'>Kockica</p>
-                <h2>{canRoll ? 'Tvoj potez' : 'Cekaj potez'}</h2>
-                <Dice
-                  canRoll={canRoll}
-                  isRolling={isRolling}
-                  onRoll={rollDice}
-                  value={diceValue}
-                />
-                <p className='muted'>
-                  {room.isStarted
-                    ? canRoll
-                      ? 'Baci kockicu i pomeri se.'
-                      : 'Dugme je aktivno samo kada je tvoj red.'
-                    : 'Host prvo zakljucava tablu pokretanjem igre.'}
-                </p>
-              </div>
-            )}
+            {!room.isStarted && isHost && isPlayer && (
+  <BoardEditor
+    board={board}
+    disabled={!canEditBoard}
+    mode={editorMode}
+    onAdd={addBoardElement}
+    onClear={clearBoard}
+    onModeChange={setEditorMode}
+    selectedPositions={selectedPositions}
+  />
+)}
+
+{/* 2. Kockica - samo ako si igrač */}
+{isPlayer && (
+  <div className='panel compact'>
+    <p className='eyebrow'>Kockica</p>
+    <h2>{canRoll ? 'Tvoj potez' : 'Cekaj potez'}</h2>
+    <Dice
+      canRoll={canRoll}
+      isRolling={isRolling}
+      onRoll={rollDice}
+      value={diceValue}
+    />
+    <p className='muted'>
+      {room.isStarted
+        ? canRoll
+          ? 'Baci kockicu i pomeri se.'
+          : 'Dugme je aktivno samo kada je tvoj red.'
+        : 'Host prvo zakljucava tablu pokretanjem igre.'}
+    </p>
+  </div>
+)}
+
+{/* 3. Poruka za posmatrače - samo ako NISI igrač */}
+{!isPlayer && (
+  <div className='panel compact'>
+    <p className='eyebrow'>Status</p>
+    <p>Samo gledaš partiju.</p>
+  </div>
+)}
 
             <Lobby
               canStart={isHost && players.length >= 2 && !room.isStarted}

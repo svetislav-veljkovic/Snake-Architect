@@ -227,10 +227,10 @@ namespace SnakeArchitectApi.Controllers
         {
             return moveType switch
             {
-                "snake" => $"Bacio/la si {diceValue}. Pao/pala si na zmiju! {from + diceValue} â†’ {to}",
-                "ladder" => $"Bacio/la si {diceValue}. PronaÅ¡ao/la si merdevine! {from + diceValue} â†’ {to}",
-                "blocked" => $"Bacio/la si {diceValue}. Ne moÅ¾eÅ¡ iÄ‡i dalje od kraja table.",
-                _ => $"Bacio/la si {diceValue}. Pomjeren/a sa {from} na {to}."
+                "snake" => $"Bacio/la si {diceValue}. Pao/pala si na zmiju! {from + diceValue} → {to}",
+                "ladder" => $"Bacio/la si {diceValue}. Pronašao/la si merdevine! {from + diceValue} → {to}",
+                "blocked" => $"Bacio/la si {diceValue}. Ne možeš ići dalje od kraja table.",
+                _ => $"Bacio/la si {diceValue}. Pomeren/a sa {from} na {to}."
             };
         }
     }
