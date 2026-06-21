@@ -37,7 +37,7 @@ namespace BLL.Services
             {
                 messageId = chat.ID,
                 sentAt = chat.SentAt,
-                message = "Poruka poslana."
+                message = "Poruka poslata."
             };
         }
 

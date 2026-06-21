@@ -35,26 +35,26 @@ namespace BLL.Services
         {
             var board = await _uow.GameBoard.GetBoardWithDetails(boardId);
             if (board == null)
-                return (false, "Tabla nije pronaÄ‘ena.", 0);
+                return (false, "Tabla nije pronađena.", 0);
 
             if (!IsHost(board, hostUserId))
                 return (false, "FORBIDDEN", 0);
 
             if (board.GameRoom?.IsStarted == true)
-                return (false, "Tabla se ne moÅ¾e menjati nakon poÄetka partije.", 0);
+                return (false, "Tabla se ne može menjati nakon početka partije.", 0);
 
             if (dto.StarPosition <= dto.EndPosition)
-                return (false, "Glava zmije mora biti na viÅ¡oj poziciji od repa.", 0);
+                return (false, "Glava zmije mora biti na višoj poziciji od repa.", 0);
 
             var maxPos = board.Rows * board.Columns;
             if (dto.StarPosition > maxPos || dto.EndPosition < 1)
                 return (false, "Pozicija van granica table.", 0);
 
             if (board.Snakes.Any(s => s.StarPosition == dto.StarPosition))
-                return (false, "Na toj poziciji veÄ‡ postoji glava zmije.", 0);
+                return (false, "Na toj poziciji već postoji glava zmije.", 0);
 
             if (board.Ladders.Any(l => l.StartPosition == dto.StarPosition))
-                return (false, "Na toj poziciji veÄ‡ postoje merdevine.", 0);
+                return (false, "Na toj poziciji već postoje merdevine.", 0);
 
             var snake = new Snake(dto.StarPosition, dto.EndPosition)
             {
@@ -70,13 +70,13 @@ namespace BLL.Services
         {
             var board = await _uow.GameBoard.GetBoardWithDetails(boardId);
             if (board == null)
-                return (false, "Tabla nije pronaÄ‘ena.");
+                return (false, "Tabla nije pronađena.");
 
             if (!IsHost(board, hostUserId))
                 return (false, "FORBIDDEN");
 
             if (board.GameRoom?.IsStarted == true)
-                return (false, "Tabla se ne moÅ¾e menjati nakon poÄetka partije.");
+                return (false, "Tabla se ne može menjati nakon početka partije.");
 
             try
             {
@@ -88,33 +88,33 @@ namespace BLL.Services
                 await _uow.Save();
                 return (true, "Zmija uklonjena.");
             }
-            catch { return (false, "Zmija nije pronaÄ‘ena."); }
+            catch { return (false, "Zmija nije pronađena."); }
         }
 
         public async Task<(bool Success, string Message, int Id)> AddLadderAsync(int boardId, int hostUserId, LadderDTO dto)
         {
             var board = await _uow.GameBoard.GetBoardWithDetails(boardId);
             if (board == null)
-                return (false, "Tabla nije pronaÄ‘ena.", 0);
+                return (false, "Tabla nije pronađena.", 0);
 
             if (!IsHost(board, hostUserId))
                 return (false, "FORBIDDEN", 0);
 
             if (board.GameRoom?.IsStarted == true)
-                return (false, "Tabla se ne moÅ¾e menjati nakon poÄetka partije.", 0);
+                return (false, "Tabla se ne može menjati nakon početka partije.", 0);
 
             if (dto.StartPosition >= dto.EndPosition)
-                return (false, "Dno merdevina mora biti na niÅ¾oj poziciji od vrha.", 0);
+                return (false, "Dno merdevina mora biti na nižoj poziciji od vrha.", 0);
 
             var maxPos = board.Rows * board.Columns;
             if (dto.EndPosition > maxPos || dto.StartPosition < 1)
                 return (false, "Pozicija van granica table.", 0);
 
             if (board.Snakes.Any(s => s.StarPosition == dto.StartPosition))
-                return (false, "Na toj poziciji veÄ‡ postoji zmija.", 0);
+                return (false, "Na toj poziciji već postoji zmija.", 0);
 
             if (board.Ladders.Any(l => l.StartPosition == dto.StartPosition))
-                return (false, "Na toj poziciji veÄ‡ postoje merdevine.", 0);
+                return (false, "Na toj poziciji već postoje merdevine.", 0);
 
             var ladder = new Ladder(dto.StartPosition, dto.EndPosition)
             {
@@ -130,13 +130,13 @@ namespace BLL.Services
         {
             var board = await _uow.GameBoard.GetBoardWithDetails(boardId);
             if (board == null)
-                return (false, "Tabla nije pronaÄ‘ena.");
+                return (false, "Tabla nije pronađena.");
 
             if (!IsHost(board, hostUserId))
                 return (false, "FORBIDDEN");
 
             if (board.GameRoom?.IsStarted == true)
-                return (false, "Tabla se ne moÅ¾e menjati nakon poÄetka partije.");
+                return (false, "Tabla se ne može menjati nakon početka partije.");
 
             try
             {
@@ -148,20 +148,20 @@ namespace BLL.Services
                 await _uow.Save();
                 return (true, "Merdevine uklonjene.");
             }
-            catch { return (false, "Merdevine nisu pronaÄ‘ene."); }
+            catch { return (false, "Merdevine nisu pronađene."); }
         }
 
         public async Task<(bool Success, string Message)> ClearBoardAsync(int boardId, int hostUserId)
         {
             var board = await _uow.GameBoard.GetBoardWithDetails(boardId);
             if (board == null)
-                return (false, "Tabla nije pronaÄ‘ena.");
+                return (false, "Tabla nije pronađena.");
 
             if (!IsHost(board, hostUserId))
                 return (false, "FORBIDDEN");
 
             if (board.GameRoom?.IsStarted == true)
-                return (false, "Tabla se ne moÅ¾e menjati nakon poÄetka partije.");
+                return (false, "Tabla se ne može menjati nakon početka partije.");
 
             var snakes = _uow.Snake.Find(s => s.GameBoardId == boardId).ToList();
             foreach (var s in snakes)
@@ -172,7 +172,7 @@ namespace BLL.Services
                 _uow.Ladder.Delete(l);
 
             await _uow.Save();
-            return (true, "Tabla oÄiÅ¡Ä‡ena.");
+            return (true, "Tabla očišćena.");
         }
 
         private bool IsHost(GameBoard board, int userId)

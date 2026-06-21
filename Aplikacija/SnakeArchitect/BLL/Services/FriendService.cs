@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using BLL.IServices;
 using DAL.Models;
 using DAL.UnitOfWork;
+using Microsoft.EntityFrameworkCore;
 
 namespace BLL.Services
 {
@@ -20,7 +21,7 @@ namespace BLL.Services
         public async Task<object?> SendFriendRequestAsync(int senderId, int recipientId)
         {
             if (senderId == recipientId)
-                return new { error = "Ne možeš poslati zahtjev samom/samoj sebi." };
+                return new { error = "Ne možeš poslati zahtev samom/samoj sebi." };
 
             try { await _unitOfWork.User.GetOne(recipientId); }
             catch { return null; } 
@@ -30,7 +31,7 @@ namespace BLL.Services
                 .FirstOrDefault();
 
             if (existing != null)
-                return new { error = "Zahtjev već postoji." };
+                return new { error = "Zahtev već postoji." };
 
             var alreadyFriends = _unitOfWork.FriendsList
                 .Find(fl => (fl.UserId == senderId && fl.FriendId == recipientId) ||
@@ -44,7 +45,7 @@ namespace BLL.Services
             await _unitOfWork.FriendRequest.Add(request);
             await _unitOfWork.Save();
 
-            return new { success = true, message = "Zahtjev za prijatelјstvo poslan." };
+            return new { success = true, message = "Zahtev za prijateljstvo poslan." };
         }
 
         public async Task<List<object>> GetIncomingRequestsAsync(int userId)
@@ -92,7 +93,7 @@ namespace BLL.Services
             await _unitOfWork.FriendsList.Add(fl2);
             await _unitOfWork.Save();
 
-            return new { success = true, message = "Zahtjev prihvaćen. Sada ste prijatelji." };
+            return new { success = true, message = "Zahtev prihvaćen. Sada ste prijatelji." };
         }
 
         public async Task<bool> DeclineOrCancelRequestAsync(int requestId, int userId)
@@ -132,6 +133,14 @@ namespace BLL.Services
 
             if (fl1 != null) _unitOfWork.FriendsList.Delete(fl1);
             if (fl2 != null) _unitOfWork.FriendsList.Delete(fl2);
+
+
+            var oldRequest = _unitOfWork.FriendRequest.Find(fr => (fr.SenderId == userId && fr.RecipientId == friendId) || (fr.SenderId == friendId && fr.RecipientId == userId)).FirstOrDefault();
+
+            if(oldRequest != null)
+            {
+                _unitOfWork.FriendRequest.Delete(oldRequest);
+            }
 
             await _unitOfWork.Save();
             return true;

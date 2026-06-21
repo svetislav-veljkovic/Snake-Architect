@@ -126,7 +126,7 @@ export default function DashboardPage() {
         setSelectedRoomId(roomId);
         return;
       }
-
+      
       await api.post(`/api/GameRequest/join/${roomId}`, {});
       setNotice("Zahtev za ulazak je poslat hostu.");
       await refreshDashboard();
@@ -322,7 +322,7 @@ export default function DashboardPage() {
                   <span>
                     <strong>{room.name}</strong>
                     <small>
-                      {room.isStarted ? "u toku" : "cekaonica"} ï¿½ {room.playerCount ?? 0} igraca
+                      {room.isStarted ? "u toku" : "cekaonica"} • {room.playerCount ?? 0} igraca
                     </small>
                   </span>
                   <span className="room-item-action">

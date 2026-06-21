@@ -45,7 +45,7 @@ namespace BLL.Services
 
             await _uow.User.Add(user);
             await _uow.Save();
-            return (true, "Registracija uspješna.");
+            return (true, "Registracija uspešna.");
         }
 
         public async Task<(bool Success, string Token, int UserId, string Username)> LoginAsync(string username, string password)

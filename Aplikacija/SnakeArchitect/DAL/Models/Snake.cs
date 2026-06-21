@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace DAL.Models
 {
@@ -8,9 +9,11 @@ namespace DAL.Models
         public int ID { get; set; }
 
         [Required]
+        [Column("StarPosition")]
         public int StarPosition { get; set; }
 
         [Required]
+        [Column("EndPosition")]
         public int EndPosition { get; set; }
 
         public int GameBoardId { get; set; }
