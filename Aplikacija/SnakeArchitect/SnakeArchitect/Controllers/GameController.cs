@@ -31,7 +31,7 @@ namespace SnakeArchitectApi.Controllers
           
             var room = await _unitOfWork.GameRoom.GetRoomWithDetails(roomId);
             if (room == null)
-                return NotFound(new { message = "Soba nije pronaÄ‘ena." });
+                return NotFound(new { message = "Soba nije pronađena." });
 
             var player = room.Players.FirstOrDefault(p => p.UserId == userId);
             if (player == null)
@@ -145,7 +145,7 @@ namespace SnakeArchitectApi.Controllers
         {
             var room = await _unitOfWork.GameRoom.GetRoomWithDetails(roomId);
             if (room == null)
-                return NotFound(new { message = "Soba nije pronaÄ‘ena." });
+                return NotFound(new { message = "Soba nije pronađena." });
 
             return Ok(new
             {
@@ -168,7 +168,7 @@ namespace SnakeArchitectApi.Controllers
         {
             var room = await _unitOfWork.GameRoom.GetRoomWithDetails(roomId);
             if (room == null)
-                return NotFound(new { message = "Soba nije pronaÄ‘ena." });
+                return NotFound(new { message = "Soba nije pronađena." });
 
             if (room.Board == null)
                 return Ok(new List<object>());
@@ -196,7 +196,7 @@ namespace SnakeArchitectApi.Controllers
         {
             var room = _unitOfWork.GameRoom.Find(r => r.ID == roomId).FirstOrDefault();
             if (room == null)
-                return NotFound(new { message = "Soba nije pronaÄ‘ena." });
+                return NotFound(new { message = "Soba nije pronađena." });
 
             var playerIds = _unitOfWork.Player
                 .Find(p => p.GameRoomId == roomId)

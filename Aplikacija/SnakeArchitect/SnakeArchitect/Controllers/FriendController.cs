@@ -31,7 +31,7 @@ namespace SnakeArchitectApi.Controllers
             if (errorProp != null)
                 return BadRequest(new { message = errorProp.GetValue(result)?.ToString() });
 
-            return Ok(new { message = "Zahtjev za prijatelјstvo poslan." });
+            return Ok(new { message = "Zahtev za prijateljstvo poslan." });
         }
 
         [HttpGet("requests")]
@@ -61,7 +61,7 @@ namespace SnakeArchitectApi.Controllers
             if (errorProp != null && errorProp.GetValue(result)?.ToString() == "Forbid")
                 return Forbid();
 
-            return Ok(new { message = "Zahtjev prihvaćen. Sada ste prijatelji." });
+            return Ok(new { message = "Zahtev prihvaćen. Sada ste prijatelji." });
         }
 
         [HttpDelete("request/{requestId}")]
@@ -71,9 +71,9 @@ namespace SnakeArchitectApi.Controllers
             var success = await _friendService.DeclineOrCancelRequestAsync(requestId, userId);
 
             if (!success)
-                return NotFound(new { message = "Zahtjev nije pronađen ili nemate autorizaciju." });
+                return NotFound(new { message = "Zahtev nije pronađen ili nemate autorizaciju." });
 
-            return Ok(new { message = "Zahtjev odbijen/povučen." });
+            return Ok(new { message = "Zahtev odbijen/povučen." });
         }
 
         [HttpGet("list")]
