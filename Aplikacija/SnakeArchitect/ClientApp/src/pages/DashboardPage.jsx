@@ -126,7 +126,10 @@ export default function DashboardPage() {
         setSelectedRoomId(roomId);
         return;
       }
-      
+      if (room.isStarted) {
+      setSelectedRoomId(roomId);
+      return;
+    }
       await api.post(`/api/GameRequest/join/${roomId}`, {});
       setNotice("Zahtev za ulazak je poslat hostu.");
       await refreshDashboard();
