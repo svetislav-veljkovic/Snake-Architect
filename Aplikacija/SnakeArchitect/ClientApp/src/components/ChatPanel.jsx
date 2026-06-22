@@ -93,7 +93,7 @@ export default function ChatPanel({ friends, roomName, selectedFriendId, onSelec
             <p className={message.isOwn ? "own" : ""} key={message.id}>
               <span>{message.content}</span>
               <small>
-                {message.isOwn ? "Ti" : selectedFriend.friendUsername} ·{" "}
+                {message.isOwn ? "Ti" : selectedFriend.friendUsername} â€¢{" "}
                 {new Date(message.sentAt).toLocaleTimeString([], {
                   hour: "2-digit",
                   minute: "2-digit"
