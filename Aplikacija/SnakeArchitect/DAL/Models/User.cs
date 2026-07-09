@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
@@ -18,17 +19,21 @@ namespace DAL.Models
         [JsonIgnore]
         [Required]
         public string Password { get; set;}
-        
- 
+
+
+        // FIX: kolekcije su ranije bile bez inicijalne vrednosti. Bez
+        // UseLazyLoadingProxies() u Program.cs i bez eager Include-a, svaki
+        // pristup ovim listama (npr. fr.Sender.SentMessages.Count) bi mogao
+        // da baci NullReferenceException.
         [JsonIgnore]
-        public virtual ICollection<Chat> SentMessages { get; set; }
+        public virtual ICollection<Chat> SentMessages { get; set; } = new List<Chat>();
         [JsonIgnore]
-        public virtual ICollection<Chat> ReceivedMessages { get; set; }
-  
+        public virtual ICollection<Chat> ReceivedMessages { get; set; } = new List<Chat>();
+
         [JsonIgnore]
-        public virtual ICollection<GameRequest> SentGameInvitations { get; set; }
+        public virtual ICollection<GameRequest> SentGameInvitations { get; set; } = new List<GameRequest>();
         [JsonIgnore]
-        public virtual ICollection<GameRequest> ReceivedGameInvitations { get; set; }
+        public virtual ICollection<GameRequest> ReceivedGameInvitations { get; set; } = new List<GameRequest>();
         public int GamesWon { get; set; }
         public int GamesLost { get; set; }
 
@@ -45,8 +50,5 @@ namespace DAL.Models
             GamesWon = gamesWon;
             GamesLost = gamesLost;
         }
-
-        
-
     }
 }

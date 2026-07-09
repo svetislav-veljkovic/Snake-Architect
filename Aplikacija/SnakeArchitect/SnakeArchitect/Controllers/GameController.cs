@@ -1,9 +1,10 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using System.Security.Claims;
 using DAL.Models;
 using DAL.UnitOfWork;
+using BLL.Services.IServices;
 using SnakeArchitectApi;
 
 namespace SnakeArchitectApi.Controllers
@@ -15,23 +16,25 @@ namespace SnakeArchitectApi.Controllers
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IHubContext<ChatHub> _hubContext;
+        private readonly IWinnerService _winnerService;
 
-        public GameController(IUnitOfWork unitOfWork, IHubContext<ChatHub> hubContext)
+        public GameController(IUnitOfWork unitOfWork, IHubContext<ChatHub> hubContext, IWinnerService winnerService)
         {
             _unitOfWork = unitOfWork;
             _hubContext = hubContext;
+            _winnerService = winnerService;
         }
 
-       
+
         [HttpPost("roll/{roomId}")]
         public async Task<IActionResult> RollDice(int roomId)
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
-          
+
             var room = await _unitOfWork.GameRoom.GetRoomWithDetails(roomId);
             if (room == null)
-                return NotFound(new { message = "Soba nije pronađena." });
+                return NotFound(new { message = "Soba nije pronadjena." });
 
             var player = room.Players.FirstOrDefault(p => p.UserId == userId);
             if (player == null)
@@ -40,9 +43,25 @@ namespace SnakeArchitectApi.Controllers
             if (!room.isActive)
                 return BadRequest(new { message = "Igra nije aktivna." });
 
+            // FIX: ranije se moglo baciti kockicu i pre nego sto host
+            // pokrene partiju (StartRoom), jer se proveravalo samo isActive.
+            if (!room.IsStarted)
+                return BadRequest(new { message = "Igra jos nije pocela." });
+
             var board = room.Board;
             if (board == null)
                 return BadRequest(new { message = "Tabla nije kreirana." });
+
+            // FIX: server-side provera reda igre. Ranije je provera "da li
+            // je tvoj red" postojala SAMO na klijentu (canRoll u
+            // GameRoomPage.jsx) - server je prihvatao poziv od bilo kog
+            // igraca u bilo kom trenutku (npr. dva otvorena taba).
+            var orderedPlayers = room.Players.OrderBy(p => p.ID).ToList();
+            var movesSoFar = _unitOfWork.Move.Find(m => m.GameBoardId == board.ID).Count();
+            var expectedPlayer = orderedPlayers[movesSoFar % orderedPlayers.Count];
+
+            if (expectedPlayer.ID != player.ID)
+                return BadRequest(new { message = "Nije tvoj red." });
 
             
             var rng = new Random();
@@ -95,15 +114,14 @@ namespace SnakeArchitectApi.Controllers
             bool isWinner = newPosition == maxPosition;
             if (isWinner)
             {
-                var winner = new Winner(player.ID);
-                await _unitOfWork.Winner.Add(winner);
+                // FIX: ovo je ranije ovde bilo rucno duplirano (Winner +
+                // GamesWon++) uporedo sa istom logikom u WinnerService, koju
+                // ChatHub.SendWinner takodje zove. Sad postoji samo jedan
+                // izvor istine - WinnerService je i idempotentan (vidi
+                // WinnerService.cs).
+                await _winnerService.CreateWinner(player.ID);
 
-                
-                var user = await _unitOfWork.User.GetOne(userId);
-                user.GamesWon++;
-                _unitOfWork.User.Update(user);
-
-          
+               
                 var losers = room.Players.Where(p => p.ID != player.ID);
                 foreach (var loser in losers)
                 {
@@ -145,7 +163,7 @@ namespace SnakeArchitectApi.Controllers
         {
             var room = await _unitOfWork.GameRoom.GetRoomWithDetails(roomId);
             if (room == null)
-                return NotFound(new { message = "Soba nije pronađena." });
+                return NotFound(new { message = "Soba nije pronadjena." });
 
             return Ok(new
             {
@@ -168,7 +186,7 @@ namespace SnakeArchitectApi.Controllers
         {
             var room = await _unitOfWork.GameRoom.GetRoomWithDetails(roomId);
             if (room == null)
-                return NotFound(new { message = "Soba nije pronađena." });
+                return NotFound(new { message = "Soba nije pronadjena." });
 
             if (room.Board == null)
                 return Ok(new List<object>());
@@ -196,7 +214,7 @@ namespace SnakeArchitectApi.Controllers
         {
             var room = _unitOfWork.GameRoom.Find(r => r.ID == roomId).FirstOrDefault();
             if (room == null)
-                return NotFound(new { message = "Soba nije pronađena." });
+                return NotFound(new { message = "Soba nije pronadjena." });
 
             var playerIds = _unitOfWork.Player
                 .Find(p => p.GameRoomId == roomId)
@@ -227,9 +245,9 @@ namespace SnakeArchitectApi.Controllers
         {
             return moveType switch
             {
-                "snake" => $"Bacio/la si {diceValue}. Pao/pala si na zmiju! {from + diceValue} → {to}",
-                "ladder" => $"Bacio/la si {diceValue}. Pronašao/la si merdevine! {from + diceValue} → {to}",
-                "blocked" => $"Bacio/la si {diceValue}. Ne možeš ići dalje od kraja table.",
+                "snake" => $"Bacio/la si {diceValue}. Pao/pala si na zmiju! {from + diceValue} -> {to}",
+                "ladder" => $"Bacio/la si {diceValue}. Pronasao/la si merdevine! {from + diceValue} -> {to}",
+                "blocked" => $"Bacio/la si {diceValue}. Ne mozes ici dalje od kraja table.",
                 _ => $"Bacio/la si {diceValue}. Pomeren/a sa {from} na {to}."
             };
         }

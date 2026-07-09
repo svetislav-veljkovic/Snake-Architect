@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useEffect, useState } from "react";
 import React from "react";
 
 export default function BoardEditor({
@@ -35,13 +35,16 @@ export default function BoardEditor({
     return "";
   }
 
-  // Auto-fill inputs from selected cells. Validation runs again in submit().
-  if (selectedPositions.length === 2) {
-    const s0 = String(selectedPositions[0]);
-    const s1 = String(selectedPositions[1]);
-    if (start === "" || start !== s0) setStart(s0);
-    if (end === "" || end !== s1) setEnd(s1);
-  }
+  // FIX: ranije se setStart/setEnd pozivalo direktno u telu komponente
+  // (tokom render-a), sto je anti-pattern - React 18 StrictMode renderuje
+  // komponentu dva puta, sto je moglo da izazove "stale state" ponasanje.
+  // Sad je to normalan efekat koji reaguje na promenu selectedPositions.
+  useEffect(() => {
+    if (selectedPositions.length === 2) {
+      setStart(String(selectedPositions[0]));
+      setEnd(String(selectedPositions[1]));
+    }
+  }, [selectedPositions]);
 
   function submit(event) {
     event.preventDefault();

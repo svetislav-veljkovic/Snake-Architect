@@ -27,7 +27,7 @@ namespace SnakeArchitectApi.Controllers
             var result = await _chatService.SendMessageAsync(dto, senderId);
 
             if (result == null)
-                return NotFound(new { message = "Primatelj nije pronađen." });
+                return NotFound(new { message = "Primalac nije pronadjen." });
 
             var errorProp = result.GetType().GetProperty("error");
             if (errorProp != null)
@@ -40,19 +40,20 @@ namespace SnakeArchitectApi.Controllers
             return Ok(result);
         }
 
+        // FIX: .Result -> await na oba GET endpointa ispod.
         [HttpGet("conversation/{otherUserId}")]
-        public IActionResult GetConversation(int otherUserId, [FromQuery] int page = 1, [FromQuery] int pageSize = 50)
+        public async Task<IActionResult> GetConversation(int otherUserId, [FromQuery] int page = 1, [FromQuery] int pageSize = 50)
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-            var conversation = _chatService.GetConversationAsync(userId, otherUserId, page, pageSize).Result;
+            var conversation = await _chatService.GetConversationAsync(userId, otherUserId, page, pageSize);
             return Ok(conversation);
         }
 
         [HttpGet("inbox")]
-        public IActionResult GetInbox()
+        public async Task<IActionResult> GetInbox()
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-            var inbox = _chatService.GetInboxAsync(userId).Result;
+            var inbox = await _chatService.GetInboxAsync(userId);
             return Ok(inbox);
         }
 
@@ -63,7 +64,7 @@ namespace SnakeArchitectApi.Controllers
             var success = await _chatService.DeleteMessageAsync(messageId, userId);
 
             if (!success)
-                return NotFound(new { message = "Poruka nije pronađena ili nemate pravo da je obrišete." });
+                return NotFound(new { message = "Poruka nije pronadjena ili nemate pravo da je obrisete." });
 
             return Ok(new { message = "Poruka obrisana." });
         }

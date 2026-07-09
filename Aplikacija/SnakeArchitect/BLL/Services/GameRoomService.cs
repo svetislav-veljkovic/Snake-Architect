@@ -1,4 +1,4 @@
-﻿using BLL.Services.IServices;
+using BLL.Services.IServices;
 using DAL.Models;
 using DAL.UnitOfWork;
 using System;
@@ -17,26 +17,76 @@ namespace BLL.Services
             _uow = uow;
         }
 
-        public async Task<(bool Success, string Message, int RoomId, int BoardId)> CreateRoomAsync(
-            string name, int rows, int columns, int hostUserId)
+        public async Task<(bool Success, string Message, int RoomId)> CreateRoomAsync(string name, int hostUserId, int minPlayers = 2)
         {
-            var room = new GameRoom(name, true, DateTime.UtcNow);
-            await _uow.GameRoom.Add(room);
-            await _uow.Save();
+            minPlayers = Math.Clamp(minPlayers, 2, 8);
 
-            var board = new GameBoard(rows, columns);
-            room.Board = board;
-            _uow.GameRoom.Update(room);
+            var room = new GameRoom(name, true, DateTime.UtcNow, minPlayers);
+            await _uow.GameRoom.Add(room);
             await _uow.Save();
 
             var player = new Player(hostUserId, room.ID, true);
             await _uow.Player.Add(player);
             await _uow.Save();
 
-            return (true, "Soba kreirana uspešno.", room.ID, board.ID);
+            return (true, "Soba kreirana uspesno. Sada podesi tablu.", room.ID);
         }
 
-        public async Task<IEnumerable<object>> GetActiveRoomsAsync()
+        public async Task<(bool Success, string Message, int BoardId)> CreateBoardAsync(int roomId, int hostUserId, int rows, int columns)
+        {
+            var room = await _uow.GameRoom.GetRoomWithDetails(roomId);
+            if (room == null)
+                return (false, "Soba nije pronadjena.", 0);
+
+            if (!await IsHostAsync(roomId, hostUserId))
+                return (false, "FORBIDDEN", 0);
+
+            if (room.IsStarted)
+                return (false, "Partija je vec pocela, tabla se vise ne moze podesiti.", 0);
+
+            if (room.Board != null)
+                return (false, "Tabla je vec podesena za ovu sobu.", 0);
+
+            if (rows < 5 || rows > 15 || columns < 5 || columns > 15)
+                return (false, "Dimenzije table moraju biti izmedju 5 i 15.", 0);
+
+            var board = new GameBoard(rows, columns);
+            room.Board = board;
+            _uow.GameRoom.Update(room);
+            await _uow.Save();
+
+            return (true, "Tabla je podesena. Sada mozes postavljati zmije i merdevine.", board.ID);
+        }
+
+        // FIX: host potvrdjuje raspored zmija/merdevina. Tabla se posle ovoga
+        // zakljucava za dalje izmene i tek tada se otkljucava lobi deo
+        // (pozivnice, cekanje igraca, dugme za start partije).
+        public async Task<(bool Success, string Message)> ConfirmBoardAsync(int roomId, int hostUserId)
+        {
+            var room = await _uow.GameRoom.GetRoomWithDetails(roomId);
+            if (room == null)
+                return (false, "Soba nije pronadjena.");
+
+            if (!await IsHostAsync(roomId, hostUserId))
+                return (false, "FORBIDDEN");
+
+            if (room.Board == null)
+                return (false, "Tabla nije podesena.");
+
+            if (room.IsStarted)
+                return (false, "Partija je vec pocela.");
+
+            room.BoardConfirmed = true;
+            _uow.GameRoom.Update(room);
+            await _uow.Save();
+
+            return (true, "Tabla je potvrdjena. Sada mozes pozivati igrace.");
+        }
+
+        // FIX: sad prima userId da bi mogao da vrati IsMember - bez toga
+        // frontend nije znao da li je trenutni korisnik vec igrac partije
+        // koja je u toku (pa treba da vidi "Udji" umesto "Gledaj").
+        public async Task<IEnumerable<object>> GetActiveRoomsAsync(int userId)
         {
             return _uow.GameRoom
                 .Find(r => r.isActive)
@@ -46,8 +96,12 @@ namespace BLL.Services
                     r.Name,
                     r.isActive,
                     r.IsStarted,
+                    r.MinPlayers,
+                    r.BoardConfirmed,
                     r.CreatedAd,
-                    PlayerCount = r.Players.Count
+                    PlayerCount = r.Players.Count,
+                    HasBoard = r.Board != null,
+                    IsMember = r.Players.Any(p => p.UserId == userId)
                 })
                 .ToList<object>();
         }
@@ -63,13 +117,16 @@ namespace BLL.Services
                 room.Name,
                 room.isActive,
                 room.IsStarted,
+                room.MinPlayers,
+                room.BoardConfirmed,
                 room.CreatedAd,
                 Players = room.Players.Select(p => new
                 {
                     p.ID,
                     p.UserId,
                     p.isHost,
-                    p.CurrentPosition
+                    p.CurrentPosition,
+                    p.IsConnected
                 }),
                 Board = room.Board == null ? null : new
                 {
@@ -86,45 +143,76 @@ namespace BLL.Services
         {
             GameRoom room;
             try { room = await _uow.GameRoom.GetOne(roomId); }
-            catch { return (false, "Soba nije pronađena.", 0); }
+            catch { return (false, "Soba nije pronadjena.", 0); }
 
             if (!room.isActive)
                 return (false, "Soba nije aktivna.", 0);
 
-           if (room.IsStarted)
-            return (true, "Gledaš partiju kao posmatrač.", -1);
-
-            var alreadyIn = _uow.Player
+            var existing = _uow.Player
                 .Find(p => p.UserId == userId && p.GameRoomId == roomId)
                 .FirstOrDefault();
 
-            if (alreadyIn != null)
-                return (false, "Već si u ovoj sobi.", 0);
+            if (existing != null)
+            {
+                if (!existing.IsConnected)
+                {
+                    existing.IsConnected = true;
+                    _uow.Player.Update(existing);
+                    await _uow.Save();
+                    return (true, "Uspesno si se vratio/la u partiju.", existing.ID);
+                }
+                return (false, "Vec si u ovoj sobi.", existing.ID);
+            }
+
+            if (room.IsStarted)
+                return (true, "Gledas partiju kao posmatrac.", -1);
 
             var player = new Player(userId, roomId, false);
             await _uow.Player.Add(player);
             await _uow.Save();
 
-            return (true, "Uspešno si se pridružio/la sobi.", player.ID);
+            return (true, "Uspesno si se pridruzio/la sobi.", player.ID);
+        }
+
+        public async Task<(bool Success, string Message)> ReconnectAsync(int roomId, int userId)
+        {
+            var player = _uow.Player
+                .Find(p => p.UserId == userId && p.GameRoomId == roomId)
+                .FirstOrDefault();
+
+            if (player == null)
+                return (false, "Nisi bio/bila igrac u ovoj sobi.");
+
+            if (!player.IsConnected)
+            {
+                player.IsConnected = true;
+                _uow.Player.Update(player);
+                await _uow.Save();
+            }
+
+            return (true, "Rekonektovan/a si. Nastavljas partiju.");
         }
 
         public async Task<(bool Success, string Message)> StartRoomAsync(int roomId, int userId)
         {
             var room = await _uow.GameRoom.GetRoomWithDetails(roomId);
             if (room == null)
-                return (false, "Soba nije poronađena.");
+                return (false, "Soba nije pronadjena.");
 
             if (!await IsHostAsync(roomId, userId))
                 return (false, "FORBIDDEN");
 
             if (room.IsStarted)
-                return (false, "Partija je već pokrenuta.");
+                return (false, "Partija je vec pokrenuta.");
 
             if (room.Board == null)
-                return (false, "Tabla nije kreirana.");
+                return (false, "Tabla nije podesena.");
 
-            if (room.Players.Count < 2)
-                return (false, "Potrebna su najmanje dva igrača za početak partije.");
+            if (!room.BoardConfirmed)
+                return (false, "Prvo potvrdi tablu (dugme 'Kreiraj tablu').");
+
+            if (room.Players.Count < room.MinPlayers)
+                return (false, $"Potrebno je najmanje {room.MinPlayers} igraca za pocetak partije.");
 
             room.IsStarted = true;
             room.isActive = true;
@@ -134,32 +222,51 @@ namespace BLL.Services
             return (true, "Partija je pokrenuta.");
         }
 
-        public async Task<(bool Success, string Message)> LeaveRoomAsync(int roomId, int userId)
+     public async Task<(bool Success, string Message)> LeaveRoomAsync(int roomId, int userId)
+{
+    var player = _uow.Player
+        .Find(p => p.UserId == userId && p.GameRoomId == roomId)
+        .FirstOrDefault();
+
+    if (player == null)
+        return (false, "Nisi u ovoj sobi.");
+
+    GameRoom? room = null;
+    try { room = await _uow.GameRoom.GetOne(roomId); } catch { }
+
+    if (room != null && room.IsStarted)
+    {
+        player.IsConnected = false;
+        _uow.Player.Update(player);
+        await _uow.Save();
+        return (true, "Napustio/la si sobu privremeno. Mozes se vratiti i nastaviti partiju.");
+    }
+
+    _uow.Player.Delete(player);
+
+    if (player.isHost && room != null)
+    {
+    
+        var nextHost = _uow.Player
+            .Find(p => p.GameRoomId == roomId && p.ID != player.ID)
+            .OrderBy(p => p.ID)
+            .FirstOrDefault();
+
+        if (nextHost != null)
         {
-            var player = _uow.Player
-                .Find(p => p.UserId == userId && p.GameRoomId == roomId)
-                .FirstOrDefault();
-
-            if (player == null)
-                return (false, "Nisi u ovoj sobi.");
-
-            _uow.Player.Delete(player);
-
-            if (player.isHost)
-            {
-                try
-                {
-                    var room = await _uow.GameRoom.GetOne(roomId);
-                    room.isActive = false;
-                    _uow.GameRoom.Update(room);
-                }
-                catch {  }
-            }
-
-            await _uow.Save();
-            return (true, "Napustio/la si sobu.");
+            nextHost.isHost = true;
+            _uow.Player.Update(nextHost);
         }
+        else
+        {
+            room.isActive = false;
+            _uow.GameRoom.Update(room);
+        }
+    }
 
+    await _uow.Save();
+    return (true, "Napustio/la si sobu.");
+}
         public async Task<(bool Success, string Message)> DeleteRoomAsync(int roomId, int userId)
         {
             if (!await IsHostAsync(roomId, userId))
@@ -172,7 +279,7 @@ namespace BLL.Services
                 await _uow.Save();
                 return (true, "Soba obrisana.");
             }
-            catch { return (false, "Soba nije pronađena."); }
+            catch { return (false, "Soba nije pronadjena."); }
         }
 
         public async Task<bool> IsHostAsync(int roomId, int userId)

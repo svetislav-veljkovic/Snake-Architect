@@ -1,4 +1,3 @@
-
 using BLL.Services.IServices;
 using DAL.DTOs;
 using Microsoft.AspNetCore.Authorization;
@@ -28,22 +27,52 @@ namespace SnakeArchitectApi.Controllers
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
-            var result = await _gameRoomService.CreateRoomAsync(dto.Name, dto.Rows, dto.Columns, userId);
+            var result = await _gameRoomService.CreateRoomAsync(dto.Name, userId, dto.MinPlayers);
             if (!result.Success)
                 return BadRequest(new { message = result.Message });
 
             return Ok(new
             {
                 roomId = result.RoomId,
-                boardId = result.BoardId,
                 message = result.Message
             });
+        }
+
+        [HttpPost("{id}/board")]
+        public async Task<IActionResult> CreateBoard(int id, [FromBody] InitBoardDTO dto)
+        {
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
+            var result = await _gameRoomService.CreateBoardAsync(id, userId, dto.Rows, dto.Columns);
+            if (!result.Success)
+            {
+                if (result.Message == "FORBIDDEN") return Forbid();
+                return BadRequest(new { message = result.Message });
+            }
+
+            return Ok(new { boardId = result.BoardId, message = result.Message });
+        }
+
+        [HttpPost("{id}/board/confirm")]
+        public async Task<IActionResult> ConfirmBoard(int id)
+        {
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
+            var result = await _gameRoomService.ConfirmBoardAsync(id, userId);
+            if (!result.Success)
+            {
+                if (result.Message == "FORBIDDEN") return Forbid();
+                return BadRequest(new { message = result.Message });
+            }
+
+            return Ok(new { message = result.Message });
         }
 
         [HttpGet]
         public async Task<IActionResult> GetActiveRooms()
         {
-            var rooms = await _gameRoomService.GetActiveRoomsAsync();
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            var rooms = await _gameRoomService.GetActiveRoomsAsync(userId);
             return Ok(rooms);
         }
 
@@ -52,7 +81,7 @@ namespace SnakeArchitectApi.Controllers
         {
             var room = await _gameRoomService.GetRoomByIdAsync(id);
             if (room == null)
-                return NotFound(new { message = "Soba nije pronađena." });
+                return NotFound(new { message = "Soba nije pronadjena." });
 
             return Ok(room);
         }
@@ -67,6 +96,18 @@ namespace SnakeArchitectApi.Controllers
                 return BadRequest(new { message = result.Message });
 
             return Ok(new { playerId = result.PlayerId, message = result.Message });
+        }
+
+        [HttpPost("{id}/reconnect")]
+        public async Task<IActionResult> Reconnect(int id)
+        {
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
+            var result = await _gameRoomService.ReconnectAsync(id, userId);
+            if (!result.Success)
+                return BadRequest(new { message = result.Message });
+
+            return Ok(new { message = result.Message });
         }
 
         [HttpPost("{id}/start")]
@@ -100,20 +141,28 @@ namespace SnakeArchitectApi.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteRoom(int id)
-        {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+public async Task<IActionResult> DeleteRoom(int id)
+{
+    var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
-            var result = await _gameRoomService.DeleteRoomAsync(id, userId);
-            if (!result.Success)
-            {
-                if (result.Message == "FORBIDDEN")
-                    return Forbid();
+    var result = await _gameRoomService.DeleteRoomAsync(id, userId);
+    if (!result.Success)
+    {
+        if (result.Message == "FORBIDDEN")
+            return Forbid();
 
-                return NotFound(new { message = result.Message });
-            }
+        return NotFound(new { message = result.Message });
+    }
 
-            return Ok(new { message = result.Message });
-        }
+    await _hubContext.Clients.Group("game:" + id)
+        .SendAsync("RoomDeleted", "Host je otkazao sobu.");
+
+    return Ok(new { message = result.Message });
+}
+        
+
+
+
+        
     }
 }

@@ -1,5 +1,8 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using DAL.Models;
+using System;
 
 namespace DAL.DataContext
 {
@@ -24,6 +27,16 @@ namespace DAL.DataContext
 
         public DbSet<FriendRequest> FriendRequests { get; set; }
         public DbSet<FriendsList> FriendsLists { get; set; }
+
+        // FIX: Postgres kolone tipa "timestamp with time zone" zahtevaju
+        // DateTime.Kind == Utc. Sav kod u aplikaciji vec pise DateTime.UtcNow,
+        // ali ova konverzija je "safety net" da buduci DateTime.Now slip
+        // ne baci exception pri SaveChanges.
+        protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+        {
+            configurationBuilder.Properties<DateTime>()
+                .HaveConversion<UtcDateTimeConverter>();
+        }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -81,6 +94,26 @@ namespace DAL.DataContext
                 .WithMany()
                 .HasForeignKey(fl => fl.FriendId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // FIX: spreci duplirane naloge na nivou baze (zatvara race
+            // condition prozor koji postoji u UserService.RegisterAsync
+            // izmedju provere i insert-a).
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.Username)
+                .IsUnique();
+
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.Email)
+                .IsUnique();
+        }
+    }
+
+    public class UtcDateTimeConverter : ValueConverter<DateTime, DateTime>
+    {
+        public UtcDateTimeConverter() : base(
+            v => v.Kind == DateTimeKind.Utc ? v : DateTime.SpecifyKind(v, DateTimeKind.Utc),
+            v => DateTime.SpecifyKind(v, DateTimeKind.Utc))
+        {
         }
     }
 }

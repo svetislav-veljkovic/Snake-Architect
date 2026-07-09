@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 
 export default function Lobby({
   canStart,
@@ -17,6 +17,7 @@ export default function Lobby({
   const roomRequests = (gameRequests ?? []).filter(
     (request) => request.gameRoomId === room?.id
   );
+  const minPlayers = room?.minPlayers ?? 2;
 
   return (
     <div className="panel lobby-panel">
@@ -31,8 +32,13 @@ export default function Lobby({
       <section className="mini-section">
         <div className="section-head small-head">
           <h3>Igraci</h3>
-          <small>{players.length}</small>
+          <small>{players.length}/{minPlayers}</small>
         </div>
+        {!room?.isStarted && players.length < minPlayers && (
+          <p className="muted">
+            Potrebno je jos {minPlayers - players.length} igraca da bi partija mogla da pocne.
+          </p>
+        )}
         <div className="mini-list">
           {players.length === 0 && (
             <p className="muted">Jos niko nije usao. Pozovi prijatelje.</p>
@@ -40,6 +46,7 @@ export default function Lobby({
           {players.map((player) => {
             const username = userNames[player.userId] || ("Korisnik " + player.userId);
             const position = Math.max(1, player.currentPosition || 1);
+            const disconnected = player.isConnected === false;
             return (
               <div className="list-row" key={player.id}>
                 <span>
@@ -47,7 +54,10 @@ export default function Lobby({
                     {username}
                     {player.isHost ? " (host)" : ""}
                   </strong>
-                  <small>pozicija {position}</small>
+                  <small>
+                    pozicija {position}
+                    {disconnected ? " • diskonektovan, cekamo povratak" : ""}
+                  </small>
                 </span>
               </div>
             );

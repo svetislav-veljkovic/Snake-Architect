@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -23,11 +23,16 @@ namespace BLL.Services
             if (senderId != dto.SenderId)
                 return new { error = "Forbid" };
 
+            // FIX: dodata provera da korisnik ne moze da posalje poruku
+            // samom sebi.
+            if (dto.RecipientId == senderId)
+                return new { error = "Ne mozes poslati poruku samom/samoj sebi." };
+
             try { await _unitOfWork.User.GetOne(dto.RecipientId); }
-            catch { return null; } 
+            catch { return null; }
 
             if (string.IsNullOrWhiteSpace(dto.Content))
-                return new { error = "Poruka ne može biti prazna." };
+                return new { error = "Poruka ne moze biti prazna." };
 
             var chat = new Chat(senderId, dto.RecipientId, dto.Content, DateTime.UtcNow);
             await _unitOfWork.Chat.Add(chat);
@@ -71,12 +76,16 @@ namespace BLL.Services
                 .Find(c => c.SenderId == userId || c.RecipientId == userId)
                 .ToList();
 
-            return messages
+            // FIX: strogo tipizirana projekcija umesto (dynamic)c u
+            // OrderByDescending. Stari kod je radio "slucajno" (dynamic cast
+            // se kompajlira ali je krhak i sporiji) - ovo je ekvivalentno,
+            // ali sigurno i brzo.
+            var inbox = messages
                 .GroupBy(c => c.SenderId == userId ? c.RecipientId : c.SenderId)
                 .Select(g =>
                 {
                     var lastMsg = g.OrderByDescending(m => m.SentAt).First();
-                    return (object)new
+                    return new
                     {
                         OtherUserId = g.Key,
                         LastMessage = lastMsg.Content,
@@ -84,8 +93,10 @@ namespace BLL.Services
                         IsLastMessageOwn = lastMsg.SenderId == userId
                     };
                 })
-                .OrderByDescending(c => ((dynamic)c).LastMessageAt)
+                .OrderByDescending(c => c.LastMessageAt)
                 .ToList();
+
+            return inbox.Cast<object>().ToList();
         }
 
         public async Task<bool> DeleteMessageAsync(int messageId, int userId)

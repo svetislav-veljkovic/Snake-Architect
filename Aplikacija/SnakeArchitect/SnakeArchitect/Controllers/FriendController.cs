@@ -25,7 +25,7 @@ namespace SnakeArchitectApi.Controllers
             var result = await _friendService.SendFriendRequestAsync(senderId, recipientId);
 
             if (result == null)
-                return NotFound(new { message = "Korisnik nije pronađen." });
+                return NotFound(new { message = "Korisnik nije pronadjen." });
 
             var errorProp = result.GetType().GetProperty("error");
             if (errorProp != null)
@@ -34,18 +34,22 @@ namespace SnakeArchitectApi.Controllers
             return Ok(new { message = "Zahtev za prijateljstvo poslan." });
         }
 
+        // FIX: .Result -> await (blokirajuci .Result moze da izazove
+        // deadlock/lose iskoriscenje thread poola pod opterecenjem).
         [HttpGet("requests")]
-        public IActionResult GetIncomingRequests()
+        public async Task<IActionResult> GetIncomingRequests()
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-            return Ok(_friendService.GetIncomingRequestsAsync(userId).Result);
+            var requests = await _friendService.GetIncomingRequestsAsync(userId);
+            return Ok(requests);
         }
 
         [HttpGet("requests/sent")]
-        public IActionResult GetSentRequests()
+        public async Task<IActionResult> GetSentRequests()
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-            return Ok(_friendService.GetSentRequestsAsync(userId).Result);
+            var requests = await _friendService.GetSentRequestsAsync(userId);
+            return Ok(requests);
         }
 
         [HttpPost("request/{requestId}/accept")]
@@ -55,13 +59,13 @@ namespace SnakeArchitectApi.Controllers
             var result = await _friendService.AcceptRequestAsync(requestId, userId);
 
             if (result == null)
-                return NotFound(new { message = "Zahtjev nije pronađen." });
+                return NotFound(new { message = "Zahtjev nije pronadjen." });
 
             var errorProp = result.GetType().GetProperty("error");
             if (errorProp != null && errorProp.GetValue(result)?.ToString() == "Forbid")
                 return Forbid();
 
-            return Ok(new { message = "Zahtev prihvaćen. Sada ste prijatelji." });
+            return Ok(new { message = "Zahtev prihvacen. Sada ste prijatelji." });
         }
 
         [HttpDelete("request/{requestId}")]
@@ -71,16 +75,17 @@ namespace SnakeArchitectApi.Controllers
             var success = await _friendService.DeclineOrCancelRequestAsync(requestId, userId);
 
             if (!success)
-                return NotFound(new { message = "Zahtev nije pronađen ili nemate autorizaciju." });
+                return NotFound(new { message = "Zahtev nije pronadjen ili nemate autorizaciju." });
 
-            return Ok(new { message = "Zahtev odbijen/povučen." });
+            return Ok(new { message = "Zahtev odbijen/povucen." });
         }
 
         [HttpGet("list")]
-        public IActionResult GetFriends()
+        public async Task<IActionResult> GetFriends()
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-            return Ok(_friendService.GetFriendsListAsync(userId).Result);
+            var friends = await _friendService.GetFriendsListAsync(userId);
+            return Ok(friends);
         }
 
         [HttpDelete("{friendId}")]
@@ -92,7 +97,7 @@ namespace SnakeArchitectApi.Controllers
             if (!success)
                 return NotFound(new { message = "Niste prijatelji." });
 
-            return Ok(new { message = "Prijatelј uklonjen." });
+            return Ok(new { message = "Prijatelj uklonjen." });
         }
     }
 }

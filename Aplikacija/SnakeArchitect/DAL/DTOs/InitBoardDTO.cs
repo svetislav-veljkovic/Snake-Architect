@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 
 namespace DAL.DTOs
 {
-    public class GameBoardDTO
+    public class InitBoardDTO
     {
-        public int Row { get; set; }
+        public int Rows { get; set; }
         public int Columns { get; set; }
     }
 }

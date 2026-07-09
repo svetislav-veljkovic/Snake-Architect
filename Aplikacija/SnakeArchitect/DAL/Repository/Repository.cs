@@ -1,5 +1,5 @@
-﻿using DAL.Repository.IRepository;
-using DAL.DataContext; 
+using DAL.Repository.IRepository;
+using DAL.DataContext;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
@@ -10,7 +10,7 @@ namespace DAL.Repository
 {
     public class Repository<T> : IRepository<T> where T : class
     {
-        
+
         protected readonly SnakeArchitectContext _context;
 
         public Repository(SnakeArchitectContext context)
@@ -28,7 +28,11 @@ namespace DAL.Repository
         }
         public async Task<IQueryable<T>> GetAll()
         {
-            return (IQueryable<T>)await _context.Set<T>().ToListAsync();
+            // FIX: ToListAsync() vraca List<T>, koji NE implementira
+            // IQueryable<T>. Stari (IQueryable<T>) cast bi bacio
+            // InvalidCastException cim bi ga neko pozvao.
+            var list = await _context.Set<T>().ToListAsync();
+            return list.AsQueryable();
         }
         public virtual IQueryable<T> Find(Expression<Func<T, bool>> predicate)
         {

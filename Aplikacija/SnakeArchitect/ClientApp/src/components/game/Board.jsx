@@ -47,13 +47,9 @@ function buildOverlayPaths(rows, columns, snakes, ladders, cellSize, gap) {
       const uy = dy / length;
       const nx = -uy;
       const ny = ux;
-      // Smooth S-curve using cubic Bezier - single elegant curve
-      // Control points pulled perpendicular to the line for a graceful arc
       const arcOffset = length * 0.35;
-      // First control point: 1/3 of the way, offset perpendicular
       const c1x = sx + ux * (length * 0.33) + nx * arcOffset;
       const c1y = sy + uy * (length * 0.33) + ny * arcOffset;
-      // Second control point: 2/3 of the way, offset perpendicular (opposite direction for S-curve)
       const c2x = sx + ux * (length * 0.66) - nx * arcOffset;
       const c2y = sy + uy * (length * 0.66) - ny * arcOffset;
       let d = 'M ' + sx + ' ' + sy;
@@ -116,8 +112,61 @@ function buildOverlayPaths(rows, columns, snakes, ladders, cellSize, gap) {
   return { snakes: snakesData, ladderPaths };
 }
 
+const tokenColors = [
+  "#2f6fed",
+  "#d94862",
+  "#248f67",
+  "#8b5cf6",
+  "#e08a1e",
+  "#0f766e",
+  "#ec4899",
+  "#14b8a6",
+  "#f59e0b",
+  "#6366f1"
+];
+
+function colorForUser(userId) {
+  const key = String(userId);
+  let hash = 0;
+  for (let i = 0; i < key.length; i++) {
+    hash = (hash * 31 + key.charCodeAt(i)) | 0;
+  }
+  return tokenColors[Math.abs(hash) % tokenColors.length];
+}
+
+function initials(name, fallback) {
+  const value = name || fallback || "?";
+  const parts = value.split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[1][0]).toUpperCase();
+}
+
+function PawnIcon() {
+  return (
+    <svg className="pawn-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="7.2" r="3.6" />
+      <path d="M5.6 19c1.2-3.4 3.7-5 6.4-5s5.2 1.6 6.4 5z" />
+    </svg>
+  );
+}
+
+// Grupise igrace po trenutnoj poziciji da bi mogli da se rasporede jedan
+// pored drugog unutar iste celije umesto da se preklapaju.
+function groupPlayersByPosition(players) {
+  const map = new Map();
+  (players ?? []).forEach((player) => {
+    const pos = displayPosition(player);
+    if (!map.has(pos)) map.set(pos, []);
+    map.get(pos).push(player);
+  });
+  return map;
+}
+
 const CELL_SIZE = 76;
 const CELL_GAP = 5;
+const TOKEN_SIZE = 30;
+const TOKEN_SPACING = 20;
 
 export default function Board({
   board,
@@ -140,6 +189,7 @@ export default function Board({
   const snakes = board.snakes ?? [];
   const ladders = board.ladders ?? [];
   const cells = boardNumbers(rows, columns);
+  const step = CELL_SIZE + CELL_GAP;
 
   const totalWidth = columns * CELL_SIZE + (columns - 1) * CELL_GAP;
   const totalHeight = rows * CELL_SIZE + (rows - 1) * CELL_GAP;
@@ -154,6 +204,30 @@ export default function Board({
     () => buildOverlayPaths(rows, columns, snakes, ladders, CELL_SIZE, CELL_GAP),
     [rows, columns, snakes, ladders]
   );
+
+  const playerGroups = useMemo(() => groupPlayersByPosition(players), [players]);
+
+  // FIX: igraci se sad crtaju u zasebnom apsolutno pozicioniranom sloju
+  // preko table (isto kao zmije/merdevine), umesto unutar Cell-a. Svaki
+  // token ima stabilan React key (player.id) i CSS transition na
+  // left/top, pa kad se currentPosition promeni (posle bacanja kockice),
+  // token animirano "klizi" od stare do nove celije umesto da se trenutno
+  // pojavi na novom mestu.
+  const playerTokens = useMemo(() => {
+    const tokens = [];
+    playerGroups.forEach((group, position) => {
+      const xy = positionToXY(position, rows, columns);
+      if (!xy) return;
+      const baseX = xy.column * step + CELL_SIZE / 2;
+      const baseY = xy.row * step + CELL_SIZE / 2;
+      const count = group.length;
+      group.forEach((player, index) => {
+        const offset = (index - (count - 1) / 2) * TOKEN_SPACING;
+        tokens.push({ player, x: baseX + offset, y: baseY });
+      });
+    });
+    return tokens;
+  }, [playerGroups, rows, columns, step]);
 
   return (
     <div
@@ -179,25 +253,8 @@ export default function Board({
       >
         {overlay.snakes.map((item, i) => (
           <g key={"snake-" + i}>
-            {/* Dark outline for depth */}
-            <path
-              d={item.d}
-              fill="none"
-              stroke="#5a0f1f"
-              strokeWidth="14"
-              strokeLinecap="round"
-              opacity="0.85"
-            />
-            {/* Body */}
-            <path
-              d={item.d}
-              fill="none"
-              stroke="#d94560"
-              strokeWidth="11"
-              strokeLinecap="round"
-              opacity="1"
-            />
-            {/* Highlight along the spine */}
+            <path d={item.d} fill="none" stroke="#5a0f1f" strokeWidth="14" strokeLinecap="round" opacity="0.85" />
+            <path d={item.d} fill="none" stroke="#d94560" strokeWidth="11" strokeLinecap="round" opacity="1" />
             <path
               d={item.d}
               fill="none"
@@ -207,7 +264,6 @@ export default function Board({
               opacity="0.7"
               strokeDasharray="6 10"
             />
-            {/* Head as ellipse, stretched along line direction (tangent) */}
             <ellipse
               cx={item.headX}
               cy={item.headY}
@@ -250,16 +306,11 @@ export default function Board({
               fill="#1a0509"
               transform={"rotate(" + (Math.atan2(item.tailDirY, item.tailDirX) * 180 / Math.PI) + " " + (item.headX + 5) + " " + (item.headY - 3) + ")"}
             />
-            {/* Forked tongue - sticks out from the leading edge of the head */}
             {(() => {
-              const angle = Math.atan2(item.tailDirY, item.tailDirX);
-              // Tip of head in direction of motion
               const tipX = item.headX + item.tailDirX * 18;
               const tipY = item.headY + item.tailDirY * 18;
-              // Tongue base just past the head
               const baseX = item.headX + item.tailDirX * 13;
               const baseY = item.headY + item.tailDirY * 13;
-              // Fork split points (perpendicular to motion)
               const forkLen = 6;
               const perpX = -item.tailDirY;
               const perpY = item.tailDirX;
@@ -269,36 +320,9 @@ export default function Board({
               const f2y = tipY + item.tailDirY * forkLen - perpY * 3;
               return (
                 <g>
-                  {/* Stem */}
-                  <line
-                    x1={baseX}
-                    y1={baseY}
-                    x2={tipX}
-                    y2={tipY}
-                    stroke="#c41e3a"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                  />
-                  {/* Left fork */}
-                  <line
-                    x1={tipX}
-                    y1={tipY}
-                    x2={f1x}
-                    y2={f1y}
-                    stroke="#c41e3a"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                  />
-                  {/* Right fork */}
-                  <line
-                    x1={tipX}
-                    y1={tipY}
-                    x2={f2x}
-                    y2={f2y}
-                    stroke="#c41e3a"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                  />
+                  <line x1={baseX} y1={baseY} x2={tipX} y2={tipY} stroke="#c41e3a" strokeWidth="2.2" strokeLinecap="round" />
+                  <line x1={tipX} y1={tipY} x2={f1x} y2={f1y} stroke="#c41e3a" strokeWidth="2" strokeLinecap="round" />
+                  <line x1={tipX} y1={tipY} x2={f2x} y2={f2y} stroke="#c41e3a" strokeWidth="2" strokeLinecap="round" />
                 </g>
               );
             })()}
@@ -306,52 +330,58 @@ export default function Board({
         ))}
         {overlay.ladderPaths.map((d, i) => (
           <g key={"ladder-" + i}>
-            <path
-              d={d}
-              fill="none"
-              stroke="#3a1a06"
-              strokeWidth="13"
-              strokeLinecap="round"
-              opacity="0.5"
-            />
-            <path
-              d={d}
-              fill="none"
-              stroke="#a0522d"
-              strokeWidth="10"
-              strokeLinecap="round"
-              opacity="0.95"
-            />
+            <path d={d} fill="none" stroke="#3a1a06" strokeWidth="13" strokeLinecap="round" opacity="0.5" />
+            <path d={d} fill="none" stroke="#a0522d" strokeWidth="10" strokeLinecap="round" opacity="0.95" />
           </g>
         ))}
       </svg>
 
       <div className="board-grid" style={{ ...gridStyle, zIndex: 1 }}>
-        {cells.map(({ position, row, column }) => {
-          const snakeStart = snakes.find((snake) => snake.starPosition === position);
-          const snakeEnd = snakes.find((snake) => snake.endPosition === position);
-          const ladderStart = ladders.find((ladder) => ladder.startPosition === position);
-          const ladderEnd = ladders.find((ladder) => ladder.endPosition === position);
-          const playersHere = (players ?? []).filter(
-            (player) => displayPosition(player) === position
-          );
+        {cells.map(({ position, row, column }) => (
+          <Cell
+            canEdit={canEdit}
+            columns={columns}
+            key={position}
+            onClick={onCellClick}
+            position={position}
+            rowIndex={row}
+            selected={(selectedPositions ?? []).includes(position)}
+          />
+        ))}
+      </div>
 
+      <div
+        className="player-layer"
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: totalWidth,
+          height: totalHeight,
+          zIndex: 6,
+          pointerEvents: "none"
+        }}
+      >
+        {playerTokens.map(({ player, x, y }) => {
+          const name = userNames?.[player.userId] || `Korisnik ${player.userId}`;
           return (
-            <Cell
-              canEdit={canEdit}
-              columns={columns}
-              key={position}
-              ladderEnd={ladderEnd}
-              ladderStart={ladderStart}
-              onClick={onCellClick}
-              players={playersHere}
-              position={position}
-              rowIndex={row}
-              selected={(selectedPositions ?? []).includes(position)}
-              snakeEnd={snakeEnd}
-              snakeStart={snakeStart}
-              userNames={userNames}
-            />
+            <div
+              className="player-token-anim"
+              key={player.id ?? player.userId}
+              style={{
+                left: x,
+                top: y,
+                width: TOKEN_SIZE,
+                height: TOKEN_SIZE,
+                marginLeft: -(TOKEN_SIZE / 2),
+                marginTop: -(TOKEN_SIZE / 2),
+                background: colorForUser(player.userId)
+              }}
+              title={name}
+            >
+              <PawnIcon />
+              <small>{initials(name)}</small>
+            </div>
           );
         })}
       </div>

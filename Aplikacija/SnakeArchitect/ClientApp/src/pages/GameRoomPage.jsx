@@ -1,19 +1,17 @@
-﻿import { HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
+import { HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
 import React from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { HUB_URL } from '../utils/api.js';
 import Board from '../components/game/Board.jsx';
 import BoardEditor from '../components/game/BoardEditor.jsx';
+import BoardSetup from '../components/game/BoardSetup.jsx';
 import Dice from '../components/game/Dice.jsx';
 import Lobby from '../components/game/Lobby.jsx';
+import PhaseStepper from '../components/game/PhaseStepper.jsx';
 import { usePolling } from '../hooks/usePolling.js';
 
 const POLL_INTERVAL_MS = 2000;
-
-function maxPosition(board) {
-  return (board?.rows ?? 10) * (board?.columns ?? 10);
-}
 
 function moveMessage(moveType) {
   if (moveType === 'snake') return 'Stao/la si na zmiju i spustao/la se.';
@@ -71,7 +69,6 @@ export default function GameRoomPage({
     setMoves(moveData ?? []);
     setWinner(winnerData);
 
-    // Fetch usernames for all players in the room
     if (roomData.players && roomData.players.length > 0) {
       const userIds = roomData.players.map((p) => p.userId).filter(Boolean);
       const map = {};
@@ -90,6 +87,16 @@ export default function GameRoomPage({
   }, [loadRoom]);
 
   usePolling(loadRoom, POLL_INTERVAL_MS);
+
+  useEffect(() => {
+    if (!room || !user?.userId) return;
+    const me = (room.players ?? []).find((p) => p.userId === user.userId);
+    if (me && me.isConnected === false) {
+      api.post('/api/GameRoom/' + roomId + '/reconnect', {})
+        .then(() => loadRoom())
+        .catch(() => {});
+    }
+  }, [room, user?.userId, api, roomId, loadRoom]);
 
   useEffect(() => {
     if (!token || !roomId) return undefined;
@@ -111,6 +118,11 @@ export default function GameRoomPage({
     connection.on('ReceiveWinner', () => {
       loadRoom().catch(() => {});
     });
+    connection.on('RoomDeleted', (message) => {
+  setNotice(message || 'Soba je otkazana.');
+  onCloseRoom();
+  onRefreshDashboard();
+});
 
     let cancelled = false;
     async function start() {
@@ -139,7 +151,13 @@ export default function GameRoomPage({
   const isHost = players.some(
     (player) => player.userId === user?.userId && player.isHost
   );
-  const canEditBoard = Boolean(isHost && room && !room.isStarted);
+
+  // FIX: dok host dizajnira tablu tabla je editabilna; kad je jednom
+  // potvrdi (boardConfirmed), zakljucava se i otvara se lobi ispod.
+  const canEditBoard = Boolean(isHost && room && !room.isStarted && board && !room.boardConfirmed);
+  const designPhase = Boolean(!room?.isStarted && isHost && isPlayer && board && !room?.boardConfirmed);
+  const lobbyUnlocked = Boolean(room?.isStarted || room?.boardConfirmed);
+
   const orderedPlayers = useMemo(
     () => [...players].sort((a, b) => (a.id ?? 0) - (b.id ?? 0)),
     [players]
@@ -177,10 +195,22 @@ export default function GameRoomPage({
     });
   }
 
+  function createBoard(rows, columns) {
+    return api.post('/api/GameRoom/' + roomId + '/board', { rows, columns })
+      .then(() => loadRoom());
+  }
+
+  // Host potvrdjuje raspored zmija/merdevina - tabla se zakljucava za dalje
+  // izmene i otvara se lobi (pozivnice, cekanje igraca, dugme za start).
+  function confirmBoard() {
+    return api.post('/api/GameRoom/' + roomId + '/board/confirm', {})
+      .then(() => loadRoom())
+      .catch((err) => setNotice(err.message));
+  }
+
   function addBoardElement(mode, startNum, endNum) {
     setSelectedPositions([]);
     setNotice('');
-    // SnakeDTO.StarPosition vs LadderDTO.StartPosition
     var key = mode === 'snake' ? 'starPosition' : 'startPosition';
     var payload = {};
     payload[key] = startNum;
@@ -197,22 +227,21 @@ export default function GameRoomPage({
       .catch((err) => setNotice(err.message));
   }
 
-  async function rollDice() {
-    if (!canRoll) return;
-    setIsRolling(true);
-    setNotice('');
-    try {
-      const result = await api.post('/api/Game/roll/' + roomId, {});
-      setDiceValue(result.diceValue ?? 1);
-      setNotice(result.message || moveMessage(result.moveType));
-      await loadRoom();
-      onRefreshDashboard();
-    } catch (error) {
-      setNotice(error.message);
-    } finally {
-      setTimeout(() => setIsRolling(false), 500);
-    }
+async function rollDice() {
+  if (!canRoll) return;
+  setIsRolling(true);
+  setNotice('');
+  try {
+    const result = await api.post('/api/Game/roll/' + roomId, {});
+    setDiceValue(result.diceValue ?? 1);
+    await loadRoom();
+    onRefreshDashboard();
+  } catch (error) {
+    setNotice(error.message);
+  } finally {
+    setTimeout(() => setIsRolling(false), 600);
   }
+}
 
   function inviteFriend(friendId) {
     api.post('/api/GameRequest/send', {
@@ -236,7 +265,14 @@ export default function GameRoomPage({
     onCloseRoom();
     onRefreshDashboard();
   }
+async function cancelRoom() {
+  try {
+    await api.delete('/api/GameRoom/' + roomId);
+  } catch (e) {}
 
+  onCloseRoom();
+  onRefreshDashboard();
+}
   async function acceptRequest(requestId) {
     await onAcceptGameRequest(requestId);
     await loadRoom();
@@ -252,7 +288,7 @@ export default function GameRoomPage({
       <div className='topbar full-row'>
         <div>
           <p className='eyebrow'>
-            {room.isStarted ? 'Gameplay mod' : 'Dizajn table'}
+            {room.isStarted ? 'Gameplay mod' : designPhase ? 'Dizajn table' : 'Cekaonica'}
           </p>
           <h1>{room.name}</h1>
         </div>
@@ -263,6 +299,10 @@ export default function GameRoomPage({
               ? 'Na potezu: ' + (userNames[currentPlayer.userId] || ('Korisnik ' + currentPlayer.userId))
               : 'Igra jos nije pocela'}
         </div>
+      </div>
+
+      <div className='full-row'>
+        <PhaseStepper room={room} />
       </div>
 
       {notice && <p className='notice full-row'>{notice}</p>}
@@ -281,61 +321,93 @@ export default function GameRoomPage({
 
         <aside className='right-panel'>
           <div className='control-column'>
-            {!room.isStarted && isHost && isPlayer && (
-  <BoardEditor
-    board={board}
-    disabled={!canEditBoard}
-    mode={editorMode}
-    onAdd={addBoardElement}
-    onClear={clearBoard}
-    onModeChange={setEditorMode}
-    selectedPositions={selectedPositions}
-  />
-)}
+            {!room.isStarted && isHost && isPlayer && !board && (
+              <BoardSetup
+          onCreate={createBoard}
+          onCancel={cancelRoom}
+              />
+            )}
 
-{/* 2. Kockica - samo ako si igrač */}
-{isPlayer && (
+          {designPhase && (
   <div className='panel compact'>
-    <p className='eyebrow'>Kockica</p>
-    <h2>{canRoll ? 'Tvoj potez' : 'Cekaj potez'}</h2>
-    <Dice
-      canRoll={canRoll}
-      isRolling={isRolling}
-      onRoll={rollDice}
-      value={diceValue}
+    <BoardEditor
+      board={board}
+      disabled={false}
+      mode={editorMode}
+      onAdd={addBoardElement}
+      onClear={clearBoard}
+      onModeChange={setEditorMode}
+      selectedPositions={selectedPositions}
     />
-    <p className='muted'>
-      {room.isStarted
-        ? canRoll
-          ? 'Baci kockicu i pomeri se.'
-          : 'Dugme je aktivno samo kada je tvoj red.'
-        : 'Host prvo zakljucava tablu pokretanjem igre.'}
-    </p>
+
+    <div className="button-pair" style={{ marginTop: 12 }}>
+      <button
+        className="primary"
+        onClick={confirmBoard}
+      >
+        Kreiraj tablu
+      </button>
+
+      <button
+        className="ghost"
+        onClick={cancelRoom}
+      >
+        Odustani
+      </button>
+    </div>
   </div>
 )}
 
-{/* 3. Poruka za posmatrače - samo ako NISI igrač */}
-{!isPlayer && (
-  <div className='panel compact'>
-    <p className='eyebrow'>Status</p>
-    <p>Samo gledaš partiju.</p>
-  </div>
-)}
+            {!room.isStarted && !isHost && isPlayer && (!board || !room.boardConfirmed) && (
+              <div className='panel compact'>
+                <p className='eyebrow'>Status</p>
+                <p className='muted'>Host jos uvek dizajnira tablu.</p>
+              </div>
+            )}
 
-            <Lobby
-              canStart={isHost && players.length >= 2 && !room.isStarted}
-              friends={friends}
-              gameRequests={gameRequests}
-              isHost={isHost}
-              onAcceptGameRequest={acceptRequest}
-              onDeclineGameRequest={declineRequest}
-              onInviteFriend={inviteFriend}
-              onLeaveRoom={leaveRoom}
-              onStartGame={startGame}
-              players={players}
-              room={room}
-              userNames={userNames}
-            />
+            {lobbyUnlocked && isPlayer && (
+              <div className='panel compact'>
+                <p className='eyebrow'>Kockica</p>
+                <h2>{canRoll ? 'Tvoj potez' : 'Cekaj potez'}</h2>
+                <Dice
+                  canRoll={canRoll}
+                  isRolling={isRolling}
+                  onRoll={rollDice}
+                  value={diceValue}
+                />
+                <p className='muted'>
+                  {room.isStarted
+                    ? canRoll
+                      ? 'Baci kockicu i pomeri se.'
+                      : 'Dugme je aktivno samo kada je tvoj red.'
+                    : 'Cekaj da host pokrene igru.'}
+                </p>
+              </div>
+            )}
+
+            {!isPlayer && (
+              <div className='panel compact'>
+                <p className='eyebrow'>Status</p>
+                <p>Samo gledas partiju.</p>
+              </div>
+            )}
+
+            {lobbyUnlocked && (
+              <Lobby
+                canStart={isHost && players.length >= (room.minPlayers ?? 2) && !room.isStarted && Boolean(board)}
+                friends={friends}
+                gameRequests={gameRequests}
+                isHost={isHost}
+                onAcceptGameRequest={acceptRequest}
+                onDeclineGameRequest={declineRequest}
+                onInviteFriend={inviteFriend}
+                onLeaveRoom={leaveRoom}
+                onStartGame={startGame}
+                players={players}
+                room={room}
+                userNames={userNames}
+              />
+            )}
           </div>
 
           <div className='activity-column'>
@@ -344,7 +416,7 @@ export default function GameRoomPage({
               <h2>Timeline</h2>
               <div className='timeline'>
                 {moves.length === 0 && <p className='muted'>Jos nema poteza.</p>}
-                {moves.slice(0, 8).map((move) => {
+                {moves.slice(0, 5).map((move) => {
                   const owner = players.find((p) => p.id === move.playerId);
                   const ownerName = owner ? userNames[owner.userId] : null;
                   return (

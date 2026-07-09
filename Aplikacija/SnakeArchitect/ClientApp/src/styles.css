@@ -945,3 +945,157 @@ label {
   }
 }
 
+  /* PHASE STEPPER */
+.phase-stepper {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.phase-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #9aa6b9;
+}
+
+.phase-step-dot {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 2px solid #d8deea;
+  color: #9aa6b9;
+  background: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 900;
+  flex-shrink: 0;
+  transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+.phase-step-label {
+  font-size: 0.8rem;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.phase-step.done .phase-step-dot {
+  border-color: #248f67;
+  color: #ffffff;
+  background: #248f67;
+}
+
+.phase-step.done .phase-step-label {
+  color: #248f67;
+}
+
+.phase-step.active .phase-step-dot {
+  border-color: #2f6fed;
+  color: #ffffff;
+  background: #2f6fed;
+  box-shadow: 0 0 0 4px rgba(47, 111, 237, 0.16);
+}
+
+.phase-step.active .phase-step-label {
+  color: #17233b;
+}
+
+.phase-step-line {
+  width: 40px;
+  height: 2px;
+  margin: 0 8px;
+  background: #d8deea;
+  transition: background 0.3s ease;
+}
+
+.phase-step-line.filled {
+  background: #248f67;
+}
+
+@media (max-width: 560px) {
+  .phase-step-label {
+    display: none;
+  }
+
+  .phase-step-line {
+    width: 20px;
+    margin: 0 4px;
+  }
+}
+
+/* DICE - livlja animacija bacanja */
+.dice.rolling {
+  animation: diceRoll 0.6s cubic-bezier(.36, .07, .19, .97);
+}
+
+@keyframes diceRoll {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  20% {
+    transform: rotate(-18deg) scale(1.08);
+  }
+  40% {
+    transform: rotate(160deg) scale(0.94);
+  }
+  60% {
+    transform: rotate(340deg) scale(1.1);
+  }
+  80% {
+    transform: rotate(370deg) scale(0.98);
+  }
+  100% {
+    transform: rotate(360deg) scale(1);
+  }
+}
+
+
+.player-token-anim {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  color: #ffffff;
+  font-size: 0.62rem;
+  font-weight: 900;
+  box-shadow: 0 3px 8px rgba(15, 23, 42, 0.25);
+  transition: left 0.6s cubic-bezier(.4, 0, .2, 1), top 0.6s cubic-bezier(.4, 0, .2, 1);
+}
+
+.player-token-anim .pawn-icon {
+  position: absolute;
+  width: 60%;
+  height: 60%;
+  fill: rgba(255, 255, 255, 0.35);
+  pointer-events: none;
+}
+
+.player-token-anim small {
+  position: relative;
+  z-index: 1;
+  color: #ffffff;
+}
+
+
+select {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid #d8deea;
+  border-radius: 8px;
+  padding: 11px 12px;
+  color: #18202f;
+  background: #ffffff;
+  outline: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='%23566177'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 30px;
+}
+
+select:focus {
+  border-color: #2f6fed;
+  box-shadow: 0 0 0 3px rgba(47, 111, 237, 0.16);
+}

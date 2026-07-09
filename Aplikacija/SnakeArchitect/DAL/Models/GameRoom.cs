@@ -17,6 +17,9 @@ namespace DAL.Models
         public bool isActive { get; set;}
         public bool IsStarted { get; set; }
 
+        public int MinPlayers { get; set; } = 2;
+        public bool BoardConfirmed { get; set; }
+
         public DateTime CreatedAd { get; set;}
 
 
@@ -25,11 +28,13 @@ namespace DAL.Models
             
         }
 
-        public GameRoom(string name,bool isactive,DateTime createdAd) 
+        public GameRoom(string name, bool isactive, DateTime createdAd, int minPlayers = 2) 
         {
             Name = name;
             isActive = isactive;
             IsStarted = false;
+            MinPlayers = minPlayers;
+            BoardConfirmed = false;
             CreatedAd= createdAd;
         }
 

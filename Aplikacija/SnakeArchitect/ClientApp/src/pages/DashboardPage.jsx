@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import React from "react";
 import ChatPanel from "../components/ChatPanel.jsx";
 import FriendsPanel from "../components/FriendsPanel.jsx";
@@ -7,10 +7,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { usePolling } from "../hooks/usePolling.js";
 import GameRoomPage from "./GameRoomPage.jsx";
 
-const emptyRoom = { name: "", rows: 10, columns: 10 };
-
-// Polling cadence keeps the lobby, incoming requests and stats feeling live
-// even when the SignalR hub is unavailable.
+const emptyRoom = { name: "" };
 const POLL_INTERVAL_MS = 2000;
 
 export default function DashboardPage() {
@@ -23,6 +20,7 @@ export default function DashboardPage() {
   const [gameRequests, setGameRequests] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [roomForm, setRoomForm] = useState(emptyRoom);
+  const [minPlayers, setMinPlayers] = useState(2);
   const [selectedRoomId, setSelectedRoomId] = useState(null);
   const [selectedFriendId, setSelectedFriendId] = useState(null);
   const [searchResults, setSearchResults] = useState([]);
@@ -73,13 +71,11 @@ export default function DashboardPage() {
     });
   }, [api, user?.userId]);
 
-  // First refresh is eager so the dashboard is not empty on first paint.
   useEffect(() => {
     refreshDashboard().catch(() => {});
   }, [refreshDashboard]);
   usePolling(refreshDashboard, POLL_INTERVAL_MS);
 
-  // Auto-dismiss the notice toast so it does not linger after a stale error.
   useEffect(() => {
     if (!notice) return undefined;
     const timer = setTimeout(() => setNotice(""), 3500);
@@ -90,14 +86,8 @@ export default function DashboardPage() {
     event.preventDefault();
     setNotice("");
 
-    const rows = Number(roomForm.rows);
-    const columns = Number(roomForm.columns);
     if (!roomForm.name.trim()) {
       setNotice("Unesi naziv sobe.");
-      return;
-    }
-    if (!Number.isFinite(rows) || !Number.isFinite(columns) || rows < 5 || columns < 5 || rows > 15 || columns > 15) {
-      setNotice("Dimenzije table moraju biti izmedju 5 i 15.");
       return;
     }
 
@@ -105,11 +95,11 @@ export default function DashboardPage() {
     try {
       const data = await api.post("/api/GameRoom", {
         name: roomForm.name.trim(),
-        rows,
-        columns
+        minPlayers
       });
       setSelectedRoomId(data.roomId);
       setRoomForm(emptyRoom);
+      setMinPlayers(2);
       await refreshDashboard();
     } catch (error) {
       setNotice(error.message);
@@ -127,9 +117,9 @@ export default function DashboardPage() {
         return;
       }
       if (room.isStarted) {
-      setSelectedRoomId(roomId);
-      return;
-    }
+        setSelectedRoomId(roomId);
+        return;
+      }
       await api.post(`/api/GameRequest/join/${roomId}`, {});
       setNotice("Zahtev za ulazak je poslat hostu.");
       await refreshDashboard();
@@ -265,41 +255,32 @@ export default function DashboardPage() {
                 <h2>Kreiraj sobu</h2>
               </div>
             </div>
+            <p className="muted">
+              Prvo kreiras lobi sobu, a tablu (dimenzije, zmije i merdevine)
+              podesavas naknadno kad udjes u sobu.
+            </p>
             <form className="stack compact-gap" onSubmit={createRoom}>
-              <label>
-                Naziv sobe
-                <input
-                  value={roomForm.name}
-                  onChange={(event) =>
-                    setRoomForm((current) => ({ ...current, name: event.target.value }))
-                  }
-                  placeholder="npr. Brza partija"
-                />
-              </label>
               <div className="inline-fields">
                 <label>
-                  Redovi
+                  Naziv sobe
                   <input
-                    max="15"
-                    min="5"
-                    type="number"
-                    value={roomForm.rows}
+                    value={roomForm.name}
                     onChange={(event) =>
-                      setRoomForm((current) => ({ ...current, rows: event.target.value }))
+                      setRoomForm((current) => ({ ...current, name: event.target.value }))
                     }
+                    placeholder="npr. Brza partija"
                   />
                 </label>
                 <label>
-                  Kolone
-                  <input
-                    max="15"
-                    min="5"
-                    type="number"
-                    value={roomForm.columns}
-                    onChange={(event) =>
-                      setRoomForm((current) => ({ ...current, columns: event.target.value }))
-                    }
-                  />
+                  Minimalan broj igraca
+                  <select
+                    value={minPlayers}
+                    onChange={(event) => setMinPlayers(Number(event.target.value))}
+                  >
+                    {[2, 3, 4, 5, 6].map((n) => (
+                      <option key={n} value={n}>{n}</option>
+                    ))}
+                  </select>
                 </label>
               </div>
               <button className="primary" disabled={busy}>
@@ -325,11 +306,16 @@ export default function DashboardPage() {
                   <span>
                     <strong>{room.name}</strong>
                     <small>
-                      {room.isStarted ? "u toku" : "cekaonica"} • {room.playerCount ?? 0} igraca
+                      {room.isStarted
+                        ? "u toku"
+                        : room.hasBoard
+                          ? "cekaonica"
+                          : "podesava se tabla"}{" "}
+                      • {room.playerCount ?? 0} igraca
                     </small>
                   </span>
                   <span className="room-item-action">
-                    {room.isStarted ? "Gledaj" : "Udji"}
+                    {room.isStarted ? (room.isMember ? "Udji" : "Gledaj") : "Udji"}
                   </span>
                 </button>
               ))}

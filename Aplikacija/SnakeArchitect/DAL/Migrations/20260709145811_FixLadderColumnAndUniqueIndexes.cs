@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DAL.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class FixLadderColumnAndUniqueIndexes : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -21,6 +21,8 @@ namespace DAL.Migrations
                     Name = table.Column<string>(type: "text", nullable: false),
                     isActive = table.Column<bool>(type: "boolean", nullable: false),
                     IsStarted = table.Column<bool>(type: "boolean", nullable: false),
+                    MinPlayers = table.Column<int>(type: "integer", nullable: false),
+                    BoardConfirmed = table.Column<bool>(type: "boolean", nullable: false),
                     CreatedAd = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
@@ -192,7 +194,8 @@ namespace DAL.Migrations
                     UserId = table.Column<int>(type: "integer", nullable: false),
                     GameRoomId = table.Column<int>(type: "integer", nullable: false),
                     isHost = table.Column<bool>(type: "boolean", nullable: false),
-                    CurrentPosition = table.Column<int>(type: "integer", nullable: false)
+                    CurrentPosition = table.Column<int>(type: "integer", nullable: false),
+                    IsConnected = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -217,7 +220,7 @@ namespace DAL.Migrations
                 {
                     ID = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    StarPosition = table.Column<int>(type: "integer", nullable: false),
+                    StartPosition = table.Column<int>(type: "integer", nullable: false),
                     EndPosition = table.Column<int>(type: "integer", nullable: false),
                     GameBoardId = table.Column<int>(type: "integer", nullable: false)
                 },
@@ -421,6 +424,18 @@ namespace DAL.Migrations
                 name: "IX_Snakes_GameBoardId",
                 table: "Snakes",
                 column: "GameBoardId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Users_Email",
+                table: "Users",
+                column: "Email",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Users_Username",
+                table: "Users",
+                column: "Username",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Winners_PlayerId",

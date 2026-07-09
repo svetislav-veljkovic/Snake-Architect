@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DAL.Migrations
 {
     [DbContext(typeof(SnakeArchitectContext))]
-    [Migration("20260620165148_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260709145811_FixLadderColumnAndUniqueIndexes")]
+    partial class FixLadderColumnAndUniqueIndexes
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -197,11 +197,17 @@ namespace DAL.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ID"));
 
+                    b.Property<bool>("BoardConfirmed")
+                        .HasColumnType("boolean");
+
                     b.Property<DateTime>("CreatedAd")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<bool>("IsStarted")
                         .HasColumnType("boolean");
+
+                    b.Property<int>("MinPlayers")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -289,6 +295,9 @@ namespace DAL.Migrations
                     b.Property<int>("GameRoomId")
                         .HasColumnType("integer");
 
+                    b.Property<bool>("IsConnected")
+                        .HasColumnType("boolean");
+
                     b.Property<int>("UserId")
                         .HasColumnType("integer");
 
@@ -313,13 +322,15 @@ namespace DAL.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ID"));
 
                     b.Property<int>("EndPosition")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("EndPosition");
 
                     b.Property<int>("GameBoardId")
                         .HasColumnType("integer");
 
                     b.Property<int>("StarPosition")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("StarPosition");
 
                     b.HasKey("ID");
 
@@ -363,6 +374,12 @@ namespace DAL.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("ID");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.HasIndex("Username")
+                        .IsUnique();
 
                     b.ToTable("Users");
                 });
