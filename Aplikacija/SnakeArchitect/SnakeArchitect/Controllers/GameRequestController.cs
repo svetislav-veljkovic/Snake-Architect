@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using BLL.IServices;
 using DAL.DTOs;
+using Microsoft.AspNetCore.SignalR;
 
 namespace SnakeArchitectApi.Controllers
 {
@@ -12,10 +13,12 @@ namespace SnakeArchitectApi.Controllers
     public class GameRequestController : ControllerBase
     {
         private readonly IGameRequestService _gameRequestService;
+        private readonly IHubContext<ChatHub> _hubContext;
 
-        public GameRequestController(IGameRequestService gameRequestService)
+        public GameRequestController(IGameRequestService gameRequestService, IHubContext<ChatHub> hubContext)
         {
             _gameRequestService = gameRequestService;
+            _hubContext = hubContext;
         }
 
        
@@ -66,6 +69,9 @@ namespace SnakeArchitectApi.Controllers
                     return NotFound(new { message = result.Message });
                 return BadRequest(new { message = result.Message });
             }
+
+            await _hubContext.Clients.Group(result.JoinedUsername)
+                .SendAsync("JoinedGameRoom", result.RoomId, result.PlayerId);
 
             return Ok(new
             {

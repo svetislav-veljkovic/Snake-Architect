@@ -3,7 +3,7 @@ import React from 'react';
 const PHASES = [
   { key: 'setup', label: 'Podesavanje table' },
   { key: 'lobby', label: 'Cekaonica' },
-  { key: 'playing', label: 'U toku' }
+  { key: 'playing', label: 'Igra u toku' }
 ];
 
 function resolvePhaseIndex(room) {

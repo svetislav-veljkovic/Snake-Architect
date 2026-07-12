@@ -77,7 +77,6 @@ export default function BoardEditor({
     <div className="panel compact">
       <div className="section-head">
         <div>
-          <p className="eyebrow">Editor table</p>
           <h2>Dizajniraj tablu</h2>
         </div>
       </div>

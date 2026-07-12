@@ -39,6 +39,7 @@ builder.Services.AddScoped<IWinnerRepository, WinnerRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IGameRoomService, GameRoomService>();
 builder.Services.AddScoped<IGameBoardService, GameBoardService>();
+builder.Services.AddScoped<IGameService, GameService>();
 builder.Services.AddScoped<IFriendService, FriendService>();
 builder.Services.AddScoped<IChatService, ChatService>();
 

@@ -20,6 +20,11 @@ namespace DAL.Models
         [Required]
         public string Password { get; set;}
 
+        // Profilna slika se cuva kao base64 data URL (npr. "data:image/png;base64,...").
+        // Dovoljno je jednostavno za potrebe projekta i ne zahteva poseban
+        // fajl-storage servis.
+        public string? ProfilePicture { get; set; }
+
 
         // FIX: kolekcije su ranije bile bez inicijalne vrednosti. Bez
         // UseLazyLoadingProxies() u Program.cs i bez eager Include-a, svaki

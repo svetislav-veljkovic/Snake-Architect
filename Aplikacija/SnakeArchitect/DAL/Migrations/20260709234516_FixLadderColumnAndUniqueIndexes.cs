@@ -41,6 +41,7 @@ namespace DAL.Migrations
                     Username = table.Column<string>(type: "text", nullable: false),
                     Email = table.Column<string>(type: "text", nullable: false),
                     Password = table.Column<string>(type: "text", nullable: false),
+                    ProfilePicture = table.Column<string>(type: "text", nullable: true),
                     GamesWon = table.Column<int>(type: "integer", nullable: false),
                     GamesLost = table.Column<int>(type: "integer", nullable: false)
                 },

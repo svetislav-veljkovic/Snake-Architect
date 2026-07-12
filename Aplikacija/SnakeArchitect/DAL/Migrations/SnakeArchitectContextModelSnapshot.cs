@@ -289,6 +289,9 @@ namespace DAL.Migrations
                     b.Property<int>("CurrentPosition")
                         .HasColumnType("integer");
 
+                    b.Property<DateTime?>("DisconnectedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<int>("GameRoomId")
                         .HasColumnType("integer");
 
@@ -364,6 +367,9 @@ namespace DAL.Migrations
 
                     b.Property<string>("Password")
                         .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ProfilePicture")
                         .HasColumnType("text");
 
                     b.Property<string>("Username")

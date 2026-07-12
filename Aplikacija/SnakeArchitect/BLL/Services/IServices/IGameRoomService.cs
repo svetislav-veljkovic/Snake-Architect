@@ -17,6 +17,7 @@ namespace BLL.Services.IServices
         Task<(bool Success, string Message)> ReconnectAsync(int roomId, int userId);
         Task<(bool Success, string Message)> StartRoomAsync(int roomId, int userId);
         Task<(bool Success, string Message)> LeaveRoomAsync(int roomId, int userId);
+        Task<(bool Success, string Message)> PermanentlyLeaveRoomAsync(int roomId, int userId);
         Task<(bool Success, string Message)> DeleteRoomAsync(int roomId, int userId);
         Task<bool> IsHostAsync(int roomId, int userId);
     }

@@ -2,8 +2,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using System.Security.Claims;
-using DAL.Models;
-using DAL.UnitOfWork;
 using BLL.Services.IServices;
 using SnakeArchitectApi;
 
@@ -14,15 +12,13 @@ namespace SnakeArchitectApi.Controllers
     [Authorize]
     public class GameController : ControllerBase
     {
-        private readonly IUnitOfWork _unitOfWork;
+        private readonly IGameService _gameService;
         private readonly IHubContext<ChatHub> _hubContext;
-        private readonly IWinnerService _winnerService;
 
-        public GameController(IUnitOfWork unitOfWork, IHubContext<ChatHub> hubContext, IWinnerService winnerService)
+        public GameController(IGameService gameService, IHubContext<ChatHub> hubContext)
         {
-            _unitOfWork = unitOfWork;
+            _gameService = gameService;
             _hubContext = hubContext;
-            _winnerService = winnerService;
         }
 
 
@@ -31,179 +27,49 @@ namespace SnakeArchitectApi.Controllers
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
-
-            var room = await _unitOfWork.GameRoom.GetRoomWithDetails(roomId);
-            if (room == null)
-                return NotFound(new { message = "Soba nije pronadjena." });
-
-            var player = room.Players.FirstOrDefault(p => p.UserId == userId);
-            if (player == null)
-                return BadRequest(new { message = "Nisi u ovoj sobi." });
-
-            if (!room.isActive)
-                return BadRequest(new { message = "Igra nije aktivna." });
-
-            // FIX: ranije se moglo baciti kockicu i pre nego sto host
-            // pokrene partiju (StartRoom), jer se proveravalo samo isActive.
-            if (!room.IsStarted)
-                return BadRequest(new { message = "Igra jos nije pocela." });
-
-            var board = room.Board;
-            if (board == null)
-                return BadRequest(new { message = "Tabla nije kreirana." });
-
-            // FIX: server-side provera reda igre. Ranije je provera "da li
-            // je tvoj red" postojala SAMO na klijentu (canRoll u
-            // GameRoomPage.jsx) - server je prihvatao poziv od bilo kog
-            // igraca u bilo kom trenutku (npr. dva otvorena taba).
-            var orderedPlayers = room.Players.OrderBy(p => p.ID).ToList();
-            var movesSoFar = _unitOfWork.Move.Find(m => m.GameBoardId == board.ID).Count();
-            var expectedPlayer = orderedPlayers[movesSoFar % orderedPlayers.Count];
-
-            if (expectedPlayer.ID != player.ID)
-                return BadRequest(new { message = "Nije tvoj red." });
-
-            
-            var rng = new Random();
-            var diceValue = rng.Next(1, 7);
-
-            
-            var dice = new Dice(player.ID, board.ID, diceValue, DateTime.UtcNow);
-            await _unitOfWork.Dice.Add(dice);
-
-          
-            var fromPosition = player.CurrentPosition;
-            var maxPosition = board.Rows * board.Columns;
-            var newPosition = fromPosition + diceValue;
-
-            string moveType = "normal";
-
-            
-            if (newPosition > maxPosition)
+            var roll = await _gameService.RollDiceAsync(roomId, userId);
+            if (!roll.Success || roll.Result == null)
             {
-                newPosition = fromPosition; 
-                moveType = "blocked";
-            }
-            else
-            {
-               
-                var snake = board.Snakes.FirstOrDefault(s => s.StarPosition == newPosition);
-                if (snake != null)
-                {
-                    newPosition = snake.EndPosition;
-                    moveType = "snake";
-                }
+                if (roll.Message == "Soba nije pronadjena.")
+                    return NotFound(new { message = roll.Message });
 
-               
-                var ladder = board.Ladders.FirstOrDefault(l => l.StartPosition == newPosition);
-                if (ladder != null)
-                {
-                    newPosition = ladder.EndPosition;
-                    moveType = "ladder";
-                }
+                return BadRequest(new { message = roll.Message });
             }
 
-          
-            var move = new Move(player.ID, board.ID, fromPosition, newPosition, moveType, DateTime.UtcNow);
-            await _unitOfWork.Move.Add(move);
-
-            
-            player.CurrentPosition = newPosition;
-            _unitOfWork.Player.Update(player);
-
-            bool isWinner = newPosition == maxPosition;
-            if (isWinner)
-            {
-                // FIX: ovo je ranije ovde bilo rucno duplirano (Winner +
-                // GamesWon++) uporedo sa istom logikom u WinnerService, koju
-                // ChatHub.SendWinner takodje zove. Sad postoji samo jedan
-                // izvor istine - WinnerService je i idempotentan (vidi
-                // WinnerService.cs).
-                await _winnerService.CreateWinner(player.ID);
-
-               
-                var losers = room.Players.Where(p => p.ID != player.ID);
-                foreach (var loser in losers)
-                {
-                    var loserUser = await _unitOfWork.User.GetOne(loser.UserId);
-                    loserUser.GamesLost++;
-                    _unitOfWork.User.Update(loserUser);
-                }
-
-               
-                room.isActive = false;
-                _unitOfWork.GameRoom.Update(room);
-            }
-
-            await _unitOfWork.Save();
-
-   
             await _hubContext.Clients.Group("game:" + roomId)
-                .SendAsync("ReceiveMove", player.ID, fromPosition, newPosition, moveType);
+                .SendAsync(
+                    "ReceiveMove",
+                    roll.Result.PlayerId,
+                    roll.Result.FromPosition,
+                    roll.Result.ToPosition,
+                    roll.Result.MoveType);
 
-            if (isWinner)
+            if (roll.Result.IsWinner)
             {
                 await _hubContext.Clients.Group("game:" + roomId)
-                    .SendAsync("ReceiveWinner", player.ID);
+                    .SendAsync("ReceiveWinner", roll.Result.PlayerId);
             }
 
-            return Ok(new
-            {
-                diceValue,
-                fromPosition,
-                toPosition = newPosition,
-                moveType,
-                isWinner,
-                message = GetMoveMessage(moveType, diceValue, fromPosition, newPosition)
-            });
+            return Ok(roll.Result);
         }
 
         [HttpGet("{roomId}/state")]
         public async Task<IActionResult> GetGameState(int roomId)
         {
-            var room = await _unitOfWork.GameRoom.GetRoomWithDetails(roomId);
-            if (room == null)
+            var state = await _gameService.GetGameStateAsync(roomId);
+            if (state == null)
                 return NotFound(new { message = "Soba nije pronadjena." });
 
-            return Ok(new
-            {
-                room.ID,
-                room.isActive,
-                Players = room.Players.Select(p => new
-                {
-                    p.ID,
-                    p.UserId,
-                    p.isHost,
-                    p.CurrentPosition
-                }),
-                MaxPosition = room.Board != null ? room.Board.Rows * room.Board.Columns : 0
-            });
+            return Ok(state);
         }
 
       
         [HttpGet("{roomId}/moves")]
         public async Task<IActionResult> GetMoves(int roomId)
         {
-            var room = await _unitOfWork.GameRoom.GetRoomWithDetails(roomId);
-            if (room == null)
+            var moves = await _gameService.GetMovesAsync(roomId);
+            if (moves == null)
                 return NotFound(new { message = "Soba nije pronadjena." });
-
-            if (room.Board == null)
-                return Ok(new List<object>());
-
-            var moves = _unitOfWork.Move
-                .Find(m => m.GameBoardId == room.Board.ID)
-                .OrderByDescending(m => m.TimeStamp)
-                .Select(m => new
-                {
-                    m.ID,
-                    m.PlayerId,
-                    m.FromPosition,
-                    m.ToPosition,
-                    m.MoveType,
-                    m.TimeStamp
-                })
-                .ToList();
 
             return Ok(moves);
         }
@@ -212,44 +78,11 @@ namespace SnakeArchitectApi.Controllers
         [HttpGet("{roomId}/winner")]
         public async Task<IActionResult> GetWinner(int roomId)
         {
-            var room = _unitOfWork.GameRoom.Find(r => r.ID == roomId).FirstOrDefault();
-            if (room == null)
+            var winner = await _gameService.GetWinnerAsync(roomId);
+            if (winner == null)
                 return NotFound(new { message = "Soba nije pronadjena." });
 
-            var playerIds = _unitOfWork.Player
-                .Find(p => p.GameRoomId == roomId)
-                .Select(p => p.ID)
-                .ToList();
-
-            var winner = _unitOfWork.Winner
-                .Find(w => playerIds.Contains(w.PlayerId))
-                .FirstOrDefault();
-
-            if (winner == null)
-                return Ok(new { hasWinner = false });
-
-            var winnerPlayer = await _unitOfWork.Player.GetOne(winner.PlayerId);
-            var winnerUser = await _unitOfWork.User.GetOne(winnerPlayer.UserId);
-
-            return Ok(new
-            {
-                hasWinner = true,
-                playerId = winner.PlayerId,
-                userId = winnerPlayer.UserId,
-                username = winnerUser.Username,
-                wonAt = winner.WonAt
-            });
-        }
-
-        private static string GetMoveMessage(string moveType, int diceValue, int from, int to)
-        {
-            return moveType switch
-            {
-                "snake" => $"Bacio/la si {diceValue}. Pao/pala si na zmiju! {from + diceValue} -> {to}",
-                "ladder" => $"Bacio/la si {diceValue}. Pronasao/la si merdevine! {from + diceValue} -> {to}",
-                "blocked" => $"Bacio/la si {diceValue}. Ne mozes ici dalje od kraja table.",
-                _ => $"Bacio/la si {diceValue}. Pomeren/a sa {from} na {to}."
-            };
+            return Ok(winner);
         }
     }
 }

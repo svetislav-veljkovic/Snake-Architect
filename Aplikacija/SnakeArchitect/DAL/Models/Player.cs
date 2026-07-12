@@ -22,6 +22,7 @@ namespace DAL.Models
         // ID i host status i moze da se vrati i nastavi partiju umesto da
         // bude sveden na posmatraca.
         public bool IsConnected { get; set; }
+        public DateTime? DisconnectedAt { get; set; }
 
         public Player()
         {
@@ -33,6 +34,7 @@ namespace DAL.Models
             isHost = host;
             CurrentPosition = 0;
             IsConnected = true;
+            DisconnectedAt = null;
         }
     }
 }

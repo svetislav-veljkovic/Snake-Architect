@@ -1,4 +1,3 @@
-
 using BLL.Services.IServices;
 using DAL.DTOs;
 using Microsoft.AspNetCore.Authorization;
@@ -34,7 +33,7 @@ namespace SnakeArchitectApi.Controllers
         {
             var result = await _userService.LoginAsync(dto.Username, dto.Password);
             if (!result.Success)
-                return Unauthorized(new { message = "Pogrešno korisničko ime ili lozinka." });
+                return Unauthorized(new { message = "Pogresno korisnicko ime ili lozinka." });
 
             return Ok(new { token = result.Token, userId = result.UserId, username = result.Username });
         }
@@ -45,7 +44,7 @@ namespace SnakeArchitectApi.Controllers
         {
             var user = await _userService.GetUserByIdAsync(id);
             if (user == null)
-                return NotFound(new { message = "Korisnik nije pronađen." });
+                return NotFound(new { message = "Korisnik nije pronadjen." });
 
             return Ok(user);
         }
@@ -76,15 +75,67 @@ namespace SnakeArchitectApi.Controllers
             return Ok(new { message = result.Message });
         }
 
+        [HttpPut("{id}/password")]
+        [Authorize]
+        public async Task<IActionResult> ChangePassword(int id, [FromBody] ChangePasswordDTO dto)
+        {
+            var requestingUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
+            var result = await _userService.ChangePasswordAsync(id, requestingUserId, dto.CurrentPassword, dto.NewPassword);
+            if (!result.Success)
+            {
+                if (result.Message == "FORBIDDEN")
+                    return Forbid();
+
+                return BadRequest(new { message = result.Message });
+            }
+
+            return Ok(new { message = result.Message });
+        }
+
         [HttpGet("{id}/stats")]
         [Authorize]
         public async Task<IActionResult> GetStats(int id)
         {
             var stats = await _userService.GetStatsAsync(id);
             if (stats == null)
-                return NotFound(new { message = "Korisnik nije pronađen." });
+                return NotFound(new { message = "Korisnik nije pronadjen." });
 
             return Ok(stats);
+        }
+
+        [HttpGet("{id}/history")]
+        [Authorize]
+        public async Task<IActionResult> GetRecentMatchHistory(int id, [FromQuery] int limit = 5)
+        {
+            var requestingUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            if (id != requestingUserId)
+                return Forbid();
+
+            if (limit <= 0) limit = 5;
+            if (limit > 50) limit = 50;
+
+            var history = await _userService.GetRecentMatchHistoryAsync(id, limit);
+            return Ok(history);
+        }
+
+        // FIX: istorija odigranih partija izmedju ulogovanog korisnika i
+        // otherUserId (npr. za prikaz "poslednjih 5 partija protiv X" u cet
+        // panelu). Korisnik moze traziti istoriju samo za sebe (id mora biti
+        // njegov sopstveni), da ne bi mogao da vidi tudju istoriju.
+        [HttpGet("{id}/history/{otherUserId}")]
+        [Authorize]
+        public async Task<IActionResult> GetMatchHistory(int id, int otherUserId, [FromQuery] int limit = 5)
+        {
+            var requestingUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            if (id != requestingUserId)
+                return Forbid();
+
+            if (limit <= 0) limit = 5;
+            if (limit > 50) limit = 50;
+
+            var history = await _userService.GetMatchHistoryAsync(id, otherUserId, limit);
+            return Ok(history);
         }
     }
 }

@@ -48,9 +48,9 @@ namespace BLL.Services
             return new { success = true, message = "Zahtev za prijateljstvo poslan." };
         }
 
-        public async Task<List<object>> GetIncomingRequestsAsync(int userId)
+        public Task<List<object>> GetIncomingRequestsAsync(int userId)
         {
-            return _unitOfWork.FriendRequest
+            var requests = _unitOfWork.FriendRequest
                 .Find(fr => fr.RecipientId == userId && !fr.Accepted)
                 .Select(fr => (object)new
                 {
@@ -59,11 +59,13 @@ namespace BLL.Services
                     SenderUsername = fr.Sender != null ? fr.Sender.Username : string.Empty
                 })
                 .ToList();
+
+            return Task.FromResult(requests);
         }
 
-        public async Task<List<object>> GetSentRequestsAsync(int userId)
+        public Task<List<object>> GetSentRequestsAsync(int userId)
         {
-            return _unitOfWork.FriendRequest
+            var requests = _unitOfWork.FriendRequest
                 .Find(fr => fr.SenderId == userId && !fr.Accepted)
                 .Select(fr => (object)new
                 {
@@ -72,6 +74,8 @@ namespace BLL.Services
                     RecipientUsername = fr.Recipient != null ? fr.Recipient.Username : string.Empty
                 })
                 .ToList();
+
+            return Task.FromResult(requests);
         }
 
         public async Task<object?> AcceptRequestAsync(int requestId, int userId)
@@ -110,9 +114,9 @@ namespace BLL.Services
             return true;
         }
 
-        public async Task<List<object>> GetFriendsListAsync(int userId)
+        public Task<List<object>> GetFriendsListAsync(int userId)
         {
-            return _unitOfWork.FriendsList
+            var friends = _unitOfWork.FriendsList
                 .Find(fl => fl.UserId == userId)
                 .Select(fl => (object)new
                 {
@@ -122,6 +126,8 @@ namespace BLL.Services
                     GamesWon = fl.Friend != null ? fl.Friend.GamesWon : 0
                 })
                 .ToList();
+
+            return Task.FromResult(friends);
         }
 
         public async Task<bool> RemoveFriendAsync(int userId, int friendId)

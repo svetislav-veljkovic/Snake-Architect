@@ -1,4 +1,4 @@
-﻿import Cell from "./Cell.jsx";
+import Cell from "./Cell.jsx";
 import React, { useMemo } from "react";
 
 // Build the visual numbering for the board. The board is rendered bottom-up
@@ -153,10 +153,16 @@ function PawnIcon() {
 
 // Grupise igrace po trenutnoj poziciji da bi mogli da se rasporede jedan
 // pored drugog unutar iste celije umesto da se preklapaju.
-function groupPlayersByPosition(players) {
+// FIX: sad prima i "overrides" mapu (playerId -> pozicija) koju koristi
+// animacija koraka niz zmiju/uz merdevine (vidi GameRoomPage.jsx). Dok je
+// override aktivan za nekog igraca, on se koristi umesto stvarne
+// currentPosition, tako da token vizuelno "hoda" polje-po-polje pre nego
+// sto se stvarno stanje sa servera stigne/primeni.
+function groupPlayersByPosition(players, overrides) {
   const map = new Map();
   (players ?? []).forEach((player) => {
-    const pos = displayPosition(player);
+    const overridden = overrides ? overrides[player.id] : undefined;
+    const pos = overridden !== undefined && overridden !== null ? overridden : displayPosition(player);
     if (!map.has(pos)) map.set(pos, []);
     map.get(pos).push(player);
   });
@@ -171,10 +177,15 @@ const TOKEN_SPACING = 20;
 export default function Board({
   board,
   canEdit,
+  currentPlayerId,
   onCellClick,
   players,
   selectedPositions,
-  userNames
+  userNames,
+  positionOverrides,
+  steppingPlayerId,
+  reactions,
+  theme
 }) {
   if (!board) {
     return (
@@ -205,7 +216,10 @@ export default function Board({
     [rows, columns, snakes, ladders]
   );
 
-  const playerGroups = useMemo(() => groupPlayersByPosition(players), [players]);
+  const playerGroups = useMemo(
+    () => groupPlayersByPosition(players, positionOverrides),
+    [players, positionOverrides]
+  );
 
   // FIX: igraci se sad crtaju u zasebnom apsolutno pozicioniranom sloju
   // preko table (isto kao zmije/merdevine), umesto unutar Cell-a. Svaki
@@ -229,9 +243,22 @@ export default function Board({
     return tokens;
   }, [playerGroups, rows, columns, step]);
 
+  // FIX: lookup pozicije po userId-u (ne po player.id), da bismo mogli da
+  // "zakacimo" brzu emoji-reakciju iznad taÄkno onog igraca koji ju je
+  // poslao (SendReaction salje userId, ne Player.ID).
+  const positionsByUserId = useMemo(() => {
+    const map = new Map();
+    playerTokens.forEach(({ player, x, y }) => {
+      map.set(player.userId, { x, y });
+    });
+    return map;
+  }, [playerTokens]);
+
+  const themeClass = "board-theme-" + (theme || "classic");
+
   return (
     <div
-      className="board-wrap"
+      className={"board-wrap " + themeClass}
       style={{
         position: "relative",
         overflow: "auto",
@@ -364,9 +391,15 @@ export default function Board({
       >
         {playerTokens.map(({ player, x, y }) => {
           const name = userNames?.[player.userId] || `Korisnik ${player.userId}`;
+          const isCurrentTurn = currentPlayerId != null && player.id === currentPlayerId;
+          const isStepping = steppingPlayerId != null && player.id === steppingPlayerId;
           return (
             <div
-              className="player-token-anim"
+              className={
+                "player-token-anim" +
+                (isCurrentTurn ? " current-turn" : "") +
+                (isStepping ? " stepping" : "")
+              }
               key={player.id ?? player.userId}
               style={{
                 left: x,
@@ -382,6 +415,36 @@ export default function Board({
               <PawnIcon />
               <small>{initials(name)}</small>
             </div>
+          );
+        })}
+      </div>
+
+      <div
+        className="reaction-layer"
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: totalWidth,
+          height: totalHeight,
+          zIndex: 8,
+          pointerEvents: "none"
+        }}
+      >
+        {(reactions ?? []).map((reaction) => {
+          const pos = positionsByUserId.get(reaction.userId);
+          if (!pos) return null;
+          return (
+            <span
+              className="reaction-emoji"
+              key={reaction.id}
+              style={{
+                left: pos.x,
+                top: pos.y - TOKEN_SIZE / 2 - 4
+              }}
+            >
+              {reaction.emoji}
+            </span>
           );
         })}
       </div>

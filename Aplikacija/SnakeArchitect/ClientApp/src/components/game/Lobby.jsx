@@ -1,3 +1,4 @@
+import { useState } from "react";
 import React from "react";
 
 export default function Lobby({
@@ -7,6 +8,7 @@ export default function Lobby({
   isHost,
   onAcceptGameRequest,
   onDeclineGameRequest,
+  onDeleteRoom,
   onInviteFriend,
   onLeaveRoom,
   onStartGame,
@@ -17,7 +19,26 @@ export default function Lobby({
   const roomRequests = (gameRequests ?? []).filter(
     (request) => request.gameRoomId === room?.id
   );
+  const playerUserIds = new Set((players ?? []).map((player) => player.userId));
+  const invitableFriends = (friends ?? []).filter((friend) => !playerUserIds.has(friend.friendId));
   const minPlayers = room?.minPlayers ?? 2;
+  const hasOpenSlot = (players ?? []).length < minPlayers;
+  const canManagePlayers = isHost && (!room?.isStarted || hasOpenSlot);
+
+  // FIX: zamenjen ruzan native window.confirm() stilizovanim modalom koji
+  // se uklapa u ostatak aplikacije (isti "overlay" pattern kao
+  // winner-overlay u GameRoomPage.jsx).
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  function handleDeleteRoom() {
+    if (!onDeleteRoom) return;
+    setConfirmOpen(true);
+  }
+
+  function confirmDelete() {
+    setConfirmOpen(false);
+    onDeleteRoom();
+  }
 
   return (
     <div className="panel lobby-panel">
@@ -26,7 +47,13 @@ export default function Lobby({
           <p className="eyebrow">{room?.isStarted ? "Igra u toku" : "Cekaonica"}</p>
           <h2>{room?.name || "Soba"}</h2>
         </div>
-        <button className="ghost slim" onClick={onLeaveRoom}>Izadji</button>
+        <span className="button-pair">
+          {isHost && onDeleteRoom && (
+            <button className="ghost slim" onClick={handleDeleteRoom}>
+              {room?.isStarted ? "Prekini partiju" : "Obrisi sobu"}
+            </button>
+          )}
+        </span>
       </div>
 
       <section className="mini-section">
@@ -47,15 +74,20 @@ export default function Lobby({
             const username = userNames[player.userId] || ("Korisnik " + player.userId);
             const position = Math.max(1, player.currentPosition || 1);
             const disconnected = player.isConnected === false;
+            const statusLabel = disconnected ? "Diskonektovan" : "Aktivan";
             return (
-              <div className="list-row" key={player.id}>
+              <div className={"list-row player-list-row " + (disconnected ? "disconnected" : "connected")} key={player.id}>
                 <span>
                   <strong>
+                    <span
+                      className={"status-dot " + (disconnected ? "disconnected" : "online")}
+                      title={statusLabel}
+                    />
                     {username}
                     {player.isHost ? " (host)" : ""}
                   </strong>
                   <small>
-                    pozicija {position}
+                    Pozicija {position}
                     {disconnected ? " • diskonektovan, cekamo povratak" : ""}
                   </small>
                 </span>
@@ -65,18 +97,21 @@ export default function Lobby({
         </div>
       </section>
 
-      {!room?.isStarted && isHost && (
+      {canManagePlayers && (
         <>
           <section className="mini-section">
             <div className="section-head small-head">
               <h3>Pozovi prijatelja</h3>
-              <small>{friends.length}</small>
+              <small>{invitableFriends.length}</small>
             </div>
             <div className="mini-list">
               {friends.length === 0 && (
                 <p className="muted">Dodaj prijatelje da bi ih pozvao u igru.</p>
               )}
-              {friends.map((friend) => (
+              {friends.length > 0 && invitableFriends.length === 0 && (
+                <p className="muted">Svi prijatelji iz liste su vec u ovoj sobi.</p>
+              )}
+              {invitableFriends.map((friend) => (
                 <div className="list-row" key={friend.friendId}>
                   <span>
                     <strong>{friend.friendUsername || ("Korisnik " + friend.friendId)}</strong>
@@ -102,7 +137,7 @@ export default function Lobby({
                   <span>
                     <strong>{request.senderUsername || ("Korisnik " + request.senderId)}</strong>
                     <small>
-                      {request.isJoinRequest ? "zeli da udje" : "poziv za sobu"}
+                      {request.isJoinRequest ? "Zeli da udje" : "Poziv za sobu"}
                     </small>
                   </span>
                   <span className="button-pair">
@@ -114,20 +149,38 @@ export default function Lobby({
             </div>
           </section>
 
-          <button
-            className="primary"
-            disabled={!canStart}
-            onClick={onStartGame}
-          >
-            Zapocni igru
-          </button>
+          {!room?.isStarted && (
+            <button
+              className="primary"
+              disabled={!canStart}
+              onClick={onStartGame}
+            >
+              Zapocni igru
+            </button>
+          )}
         </>
       )}
 
-      {!isHost && !room?.isStarted && (
-        <p className="muted">
-          Read-only mod: gledas kako host postavlja zmije i merdevine.
-        </p>
+      {confirmOpen && (
+        <div className="confirm-overlay" role="dialog" aria-modal="true">
+          <div className="confirm-modal">
+            <p className="eyebrow">Potvrda</p>
+            <h2>{room?.isStarted ? "Prekini partiju?" : "Obrisi sobu?"}</h2>
+            <p>
+              {room?.isStarted
+                ? "Sigurno zelis da prekines i obrises ovu partiju? Ova akcija je trajna i ne moze se opozvati."
+                : "Sigurno zelis da obrises ovu sobu? Ova akcija je trajna."}
+            </p>
+            <span className="button-pair">
+              <button className="ghost" onClick={() => setConfirmOpen(false)}>
+                Odustani
+              </button>
+              <button className="danger" onClick={confirmDelete}>
+                {room?.isStarted ? "Prekini partiju" : "Obrisi sobu"}
+              </button>
+            </span>
+          </div>
+        </div>
       )}
     </div>
   );

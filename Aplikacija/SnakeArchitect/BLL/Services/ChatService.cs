@@ -46,7 +46,7 @@ namespace BLL.Services
             };
         }
 
-        public async Task<List<object>> GetConversationAsync(int userId, int otherUserId, int page, int pageSize)
+        public Task<List<object>> GetConversationAsync(int userId, int otherUserId, int page, int pageSize)
         {
             var messages = _unitOfWork.Chat
                 .Find(c => (c.SenderId == userId && c.RecipientId == otherUserId) ||
@@ -67,10 +67,10 @@ namespace BLL.Services
                 .ToList();
 
             messages.Reverse();
-            return messages;
+            return Task.FromResult(messages);
         }
 
-        public async Task<List<object>> GetInboxAsync(int userId)
+        public Task<List<object>> GetInboxAsync(int userId)
         {
             var messages = _unitOfWork.Chat
                 .Find(c => c.SenderId == userId || c.RecipientId == userId)
@@ -96,7 +96,7 @@ namespace BLL.Services
                 .OrderByDescending(c => c.LastMessageAt)
                 .ToList();
 
-            return inbox.Cast<object>().ToList();
+            return Task.FromResult(inbox.Cast<object>().ToList());
         }
 
         public async Task<bool> DeleteMessageAsync(int messageId, int userId)

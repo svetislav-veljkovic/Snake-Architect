@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DAL.Migrations
 {
     [DbContext(typeof(SnakeArchitectContext))]
-    [Migration("20260709145811_FixLadderColumnAndUniqueIndexes")]
+    [Migration("20260709234516_FixLadderColumnAndUniqueIndexes")]
     partial class FixLadderColumnAndUniqueIndexes
     {
         /// <inheritdoc />
@@ -367,6 +367,9 @@ namespace DAL.Migrations
 
                     b.Property<string>("Password")
                         .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ProfilePicture")
                         .HasColumnType("text");
 
                     b.Property<string>("Username")

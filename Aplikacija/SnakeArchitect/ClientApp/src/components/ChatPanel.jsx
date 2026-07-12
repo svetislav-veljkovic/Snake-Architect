@@ -4,18 +4,67 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { usePolling } from "../hooks/usePolling.js";
 
 const POLL_INTERVAL_MS = 2000;
+const CHAT_SEEN_PREFIX = "snakeArchitect.chatSeen.";
 
-export default function ChatPanel({ friends, roomName, selectedFriendId, onSelectFriend }) {
+function readSeenMessageTimes(userId) {
+  if (!userId) return new Map();
+  try {
+    const raw = localStorage.getItem(CHAT_SEEN_PREFIX + userId);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return new Map(Object.entries(parsed).map(([friendId, seenAt]) => [Number(friendId), seenAt]));
+  } catch {
+    return new Map();
+  }
+}
+
+function persistSeenMessageTimes(userId, seenMap) {
+  if (!userId) return;
+  try {
+    localStorage.setItem(CHAT_SEEN_PREFIX + userId, JSON.stringify(Object.fromEntries(seenMap)));
+  } catch {
+    /* ignore */
+  }
+}
+
+function StatusDot({ online }) {
+  return (
+    <span
+      className={"status-dot " + (online ? "online" : "offline")}
+      title={online ? "Online" : "Offline"}
+    />
+  );
+}
+
+export default function ChatPanel({ friends, onlineUserIds, roomName, selectedFriendId, onSelectFriend }) {
   const { api, user } = useAuth();
   const [messages, setMessages] = useState([]);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState("");
+  const [unreadByFriendId, setUnreadByFriendId] = useState({});
   const logRef = useRef(null);
+  const seenMessageTimes = useRef(new Map());
+  const inboxInitialized = useRef(false);
 
   const selectedFriend = useMemo(
     () => friends.find((friend) => friend.friendId === selectedFriendId),
     [friends, selectedFriendId]
   );
+
+  function isOnline(userId) {
+    return Boolean(onlineUserIds && onlineUserIds.has(userId));
+  }
+
+  const markFriendSeen = useCallback((friendId) => {
+    if (!friendId) return;
+    seenMessageTimes.current.set(friendId, Date.now());
+    persistSeenMessageTimes(user?.userId, seenMessageTimes.current);
+    setUnreadByFriendId((current) => {
+      if (!current[friendId]) return current;
+      const next = { ...current };
+      delete next[friendId];
+      return next;
+    });
+  }, [user?.userId]);
 
   const loadConversation = useCallback(async () => {
     if (!selectedFriendId || !user?.userId) {
@@ -37,6 +86,68 @@ export default function ChatPanel({ friends, roomName, selectedFriendId, onSelec
   }, [loadConversation]);
   usePolling(loadConversation, POLL_INTERVAL_MS);
 
+  const loadInbox = useCallback(async () => {
+    if (!user?.userId) {
+      inboxInitialized.current = false;
+      seenMessageTimes.current.clear();
+      setUnreadByFriendId({});
+      return;
+    }
+
+    try {
+      if (!inboxInitialized.current) {
+        seenMessageTimes.current = readSeenMessageTimes(user.userId);
+      }
+
+      const inbox = await api.get("/api/Chat/inbox");
+      setUnreadByFriendId((current) => {
+        const next = { ...current };
+        let seenChanged = false;
+
+        (inbox ?? []).forEach((item) => {
+          const friendId = item.otherUserId;
+          if (!friendId) return;
+
+          const lastMessageAt = Date.parse(item.lastMessageAt);
+          const safeLastMessageAt = Number.isNaN(lastMessageAt) ? Date.now() : lastMessageAt;
+          const seenAt = seenMessageTimes.current.get(friendId);
+
+          if (item.isLastMessageOwn || friendId === selectedFriendId) {
+            seenMessageTimes.current.set(friendId, safeLastMessageAt);
+            seenChanged = true;
+            delete next[friendId];
+            return;
+          }
+
+          if (!inboxInitialized.current && seenAt === undefined) {
+            seenMessageTimes.current.set(friendId, safeLastMessageAt);
+            seenChanged = true;
+            return;
+          }
+
+          if (seenAt !== undefined && safeLastMessageAt <= seenAt) {
+            delete next[friendId];
+            return;
+          }
+
+          next[friendId] = 1;
+        });
+
+        inboxInitialized.current = true;
+        if (seenChanged) persistSeenMessageTimes(user.userId, seenMessageTimes.current);
+        return next;
+      });
+    } catch (err) {
+      setError(err.message);
+    }
+  }, [api, selectedFriendId, user?.userId]);
+
+  useEffect(() => {
+    markFriendSeen(selectedFriendId);
+  }, [markFriendSeen, selectedFriendId]);
+
+  usePolling(loadInbox, POLL_INTERVAL_MS);
+
   useEffect(() => {
     if (!logRef.current) return;
     logRef.current.scrollTo({ top: logRef.current.scrollHeight, behavior: "smooth" });
@@ -53,7 +164,9 @@ export default function ChatPanel({ friends, roomName, selectedFriendId, onSelec
         sentAt: new Date().toISOString()
       });
       setDraft("");
+      markFriendSeen(selectedFriendId);
       await loadConversation();
+      await loadInbox();
     } catch (err) {
       setError(err.message);
     }
@@ -63,8 +176,7 @@ export default function ChatPanel({ friends, roomName, selectedFriendId, onSelec
     <aside className="panel chat-panel">
       <div className="section-head">
         <div>
-          <p className="eyebrow">{roomName ? "Cet u sobi" : "Privatni cet"}</p>
-          <h2>{selectedFriend ? selectedFriend.friendUsername : "Izaberi prijatelja"}</h2>
+          <h2>Chat</h2>
         </div>
       </div>
 
@@ -74,17 +186,28 @@ export default function ChatPanel({ friends, roomName, selectedFriendId, onSelec
         )}
         {friends.map((friend) => (
           <button
-            className={selectedFriendId === friend.friendId ? "active" : ""}
+            className={[
+              selectedFriendId === friend.friendId ? "active" : "",
+              unreadByFriendId[friend.friendId] ? "has-unread" : ""
+            ].filter(Boolean).join(" ")}
             key={friend.friendId}
-            onClick={() => onSelectFriend(friend.friendId)}
+            onClick={() => {
+              markFriendSeen(friend.friendId);
+              onSelectFriend(friend.friendId);
+            }}
           >
+            <StatusDot online={isOnline(friend.friendId)} />
             {friend.friendUsername || `Korisnik ${friend.friendId}`}
+            {unreadByFriendId[friend.friendId] && (
+              <span className="chat-unread-badge" aria-label="Nove poruke">
+                {unreadByFriendId[friend.friendId]}
+              </span>
+            )}
           </button>
         ))}
       </div>
 
       <div className="chat-log" ref={logRef}>
-        {!selectedFriend && <p className="muted">Izaberi prijatelja sa leve strane.</p>}
         {selectedFriend && messages.length === 0 && (
           <p className="muted">Nema poruka. Posalji prvu.</p>
         )}
@@ -93,7 +216,6 @@ export default function ChatPanel({ friends, roomName, selectedFriendId, onSelec
             <p className={message.isOwn ? "own" : ""} key={message.id}>
               <span>{message.content}</span>
               <small>
-                {message.isOwn ? "Ti" : selectedFriend.friendUsername} •{" "}
                 {new Date(message.sentAt).toLocaleTimeString([], {
                   hour: "2-digit",
                   minute: "2-digit"

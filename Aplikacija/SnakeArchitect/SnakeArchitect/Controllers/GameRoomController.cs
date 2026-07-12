@@ -140,6 +140,21 @@ namespace SnakeArchitectApi.Controllers
             return Ok(new { message = result.Message });
         }
 
+        [HttpPost("{id}/leave-permanent")]
+        public async Task<IActionResult> PermanentlyLeaveRoom(int id)
+        {
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
+            var result = await _gameRoomService.PermanentlyLeaveRoomAsync(id, userId);
+            if (!result.Success)
+                return BadRequest(new { message = result.Message });
+
+            await _hubContext.Clients.Group("game:" + id)
+                .SendAsync("PlayerPermanentlyLeft", userId);
+
+            return Ok(new { message = result.Message });
+        }
+
         [HttpDelete("{id}")]
 public async Task<IActionResult> DeleteRoom(int id)
 {
