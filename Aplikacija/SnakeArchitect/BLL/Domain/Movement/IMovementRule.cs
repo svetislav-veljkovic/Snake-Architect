@@ -1,5 +1,4 @@
 using DAL.Models;
-
 namespace BLL.Domain.Movement
 {
     public interface IMovementRule

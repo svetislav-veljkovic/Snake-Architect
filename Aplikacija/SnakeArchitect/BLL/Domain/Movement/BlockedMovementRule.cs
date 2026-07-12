@@ -1,5 +1,4 @@
 using DAL.Models;
-
 namespace BLL.Domain.Movement
 {
     public class BlockedMovementRule : IMovementRule
@@ -8,7 +7,6 @@ namespace BLL.Domain.Movement
         {
             return candidatePosition > board.Rows * board.Columns;
         }
-
         public MovementResult Apply(GameBoard board, int fromPosition, int candidatePosition)
         {
             return new MovementResult

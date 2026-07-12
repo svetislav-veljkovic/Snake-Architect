@@ -1,7 +1,6 @@
-﻿using DAL.DataContext;
+using DAL.DataContext;
 using DAL.Models;
 using DAL.Repository.IRepository;
-
 namespace DAL.Repository
 {
     public class WinnerRepository : Repository<Winner>, IWinnerRepository

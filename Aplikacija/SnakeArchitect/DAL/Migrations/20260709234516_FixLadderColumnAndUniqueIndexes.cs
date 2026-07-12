@@ -1,15 +1,11 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-
 #nullable disable
-
 namespace DAL.Migrations
 {
-    /// <inheritdoc />
     public partial class FixLadderColumnAndUniqueIndexes : Migration
     {
-        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
@@ -29,7 +25,6 @@ namespace DAL.Migrations
                 {
                     table.PrimaryKey("PK_GameRooms", x => x.ID);
                 });
-
             migrationBuilder.CreateTable(
                 name: "Users",
                 columns: table => new
@@ -49,7 +44,6 @@ namespace DAL.Migrations
                 {
                     table.PrimaryKey("PK_Users", x => x.ID);
                 });
-
             migrationBuilder.CreateTable(
                 name: "GameBoards",
                 columns: table => new
@@ -70,7 +64,6 @@ namespace DAL.Migrations
                         principalColumn: "ID",
                         onDelete: ReferentialAction.Cascade);
                 });
-
             migrationBuilder.CreateTable(
                 name: "Chats",
                 columns: table => new
@@ -98,7 +91,6 @@ namespace DAL.Migrations
                         principalColumn: "ID",
                         onDelete: ReferentialAction.Restrict);
                 });
-
             migrationBuilder.CreateTable(
                 name: "FriendRequests",
                 columns: table => new
@@ -125,7 +117,6 @@ namespace DAL.Migrations
                         principalColumn: "ID",
                         onDelete: ReferentialAction.Restrict);
                 });
-
             migrationBuilder.CreateTable(
                 name: "FriendsLists",
                 columns: table => new
@@ -151,7 +142,6 @@ namespace DAL.Migrations
                         principalColumn: "ID",
                         onDelete: ReferentialAction.Restrict);
                 });
-
             migrationBuilder.CreateTable(
                 name: "GameRequests",
                 columns: table => new
@@ -185,7 +175,6 @@ namespace DAL.Migrations
                         principalColumn: "ID",
                         onDelete: ReferentialAction.Restrict);
                 });
-
             migrationBuilder.CreateTable(
                 name: "Players",
                 columns: table => new
@@ -214,7 +203,6 @@ namespace DAL.Migrations
                         principalColumn: "ID",
                         onDelete: ReferentialAction.Cascade);
                 });
-
             migrationBuilder.CreateTable(
                 name: "Ladders",
                 columns: table => new
@@ -235,7 +223,6 @@ namespace DAL.Migrations
                         principalColumn: "ID",
                         onDelete: ReferentialAction.Cascade);
                 });
-
             migrationBuilder.CreateTable(
                 name: "Snakes",
                 columns: table => new
@@ -256,7 +243,6 @@ namespace DAL.Migrations
                         principalColumn: "ID",
                         onDelete: ReferentialAction.Cascade);
                 });
-
             migrationBuilder.CreateTable(
                 name: "Dices",
                 columns: table => new
@@ -284,7 +270,6 @@ namespace DAL.Migrations
                         principalColumn: "ID",
                         onDelete: ReferentialAction.Cascade);
                 });
-
             migrationBuilder.CreateTable(
                 name: "Moves",
                 columns: table => new
@@ -314,7 +299,6 @@ namespace DAL.Migrations
                         principalColumn: "ID",
                         onDelete: ReferentialAction.Cascade);
                 });
-
             migrationBuilder.CreateTable(
                 name: "Winners",
                 columns: table => new
@@ -334,155 +318,120 @@ namespace DAL.Migrations
                         principalColumn: "ID",
                         onDelete: ReferentialAction.Cascade);
                 });
-
             migrationBuilder.CreateIndex(
                 name: "IX_Chats_RecipientId",
                 table: "Chats",
                 column: "RecipientId");
-
             migrationBuilder.CreateIndex(
                 name: "IX_Chats_SenderId",
                 table: "Chats",
                 column: "SenderId");
-
             migrationBuilder.CreateIndex(
                 name: "IX_Dices_GameBoardId",
                 table: "Dices",
                 column: "GameBoardId");
-
             migrationBuilder.CreateIndex(
                 name: "IX_Dices_PlayerId",
                 table: "Dices",
                 column: "PlayerId");
-
             migrationBuilder.CreateIndex(
                 name: "IX_FriendRequests_RecipientId",
                 table: "FriendRequests",
                 column: "RecipientId");
-
             migrationBuilder.CreateIndex(
                 name: "IX_FriendRequests_SenderId",
                 table: "FriendRequests",
                 column: "SenderId");
-
             migrationBuilder.CreateIndex(
                 name: "IX_FriendsLists_FriendId",
                 table: "FriendsLists",
                 column: "FriendId");
-
             migrationBuilder.CreateIndex(
                 name: "IX_FriendsLists_UserId",
                 table: "FriendsLists",
                 column: "UserId");
-
             migrationBuilder.CreateIndex(
                 name: "IX_GameBoards_GameRoomId",
                 table: "GameBoards",
                 column: "GameRoomId",
                 unique: true);
-
             migrationBuilder.CreateIndex(
                 name: "IX_GameRequests_GameRoomId",
                 table: "GameRequests",
                 column: "GameRoomId");
-
             migrationBuilder.CreateIndex(
                 name: "IX_GameRequests_RecipientId",
                 table: "GameRequests",
                 column: "RecipientId");
-
             migrationBuilder.CreateIndex(
                 name: "IX_GameRequests_SenderId",
                 table: "GameRequests",
                 column: "SenderId");
-
             migrationBuilder.CreateIndex(
                 name: "IX_Ladders_GameBoardId",
                 table: "Ladders",
                 column: "GameBoardId");
-
             migrationBuilder.CreateIndex(
                 name: "IX_Moves_GameBoardId",
                 table: "Moves",
                 column: "GameBoardId");
-
             migrationBuilder.CreateIndex(
                 name: "IX_Moves_PlayerId",
                 table: "Moves",
                 column: "PlayerId");
-
             migrationBuilder.CreateIndex(
                 name: "IX_Players_GameRoomId",
                 table: "Players",
                 column: "GameRoomId");
-
             migrationBuilder.CreateIndex(
                 name: "IX_Players_UserId",
                 table: "Players",
                 column: "UserId");
-
             migrationBuilder.CreateIndex(
                 name: "IX_Snakes_GameBoardId",
                 table: "Snakes",
                 column: "GameBoardId");
-
             migrationBuilder.CreateIndex(
                 name: "IX_Users_Email",
                 table: "Users",
                 column: "Email",
                 unique: true);
-
             migrationBuilder.CreateIndex(
                 name: "IX_Users_Username",
                 table: "Users",
                 column: "Username",
                 unique: true);
-
             migrationBuilder.CreateIndex(
                 name: "IX_Winners_PlayerId",
                 table: "Winners",
                 column: "PlayerId");
         }
-
-        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
                 name: "Chats");
-
             migrationBuilder.DropTable(
                 name: "Dices");
-
             migrationBuilder.DropTable(
                 name: "FriendRequests");
-
             migrationBuilder.DropTable(
                 name: "FriendsLists");
-
             migrationBuilder.DropTable(
                 name: "GameRequests");
-
             migrationBuilder.DropTable(
                 name: "Ladders");
-
             migrationBuilder.DropTable(
                 name: "Moves");
-
             migrationBuilder.DropTable(
                 name: "Snakes");
-
             migrationBuilder.DropTable(
                 name: "Winners");
-
             migrationBuilder.DropTable(
                 name: "GameBoards");
-
             migrationBuilder.DropTable(
                 name: "Players");
-
             migrationBuilder.DropTable(
                 name: "GameRooms");
-
             migrationBuilder.DropTable(
                 name: "Users");
         }

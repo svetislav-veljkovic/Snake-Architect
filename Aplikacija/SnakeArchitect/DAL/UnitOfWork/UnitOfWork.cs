@@ -1,13 +1,11 @@
-﻿using DAL.DataContext;
+using DAL.DataContext;
 using DAL.Repository;
 using DAL.Repository.IRepository;
-
 namespace DAL.UnitOfWork
 {
     public class UnitOfWork : IUnitOfWork
     {
         private readonly SnakeArchitectContext _context;
-
         public UnitOfWork(SnakeArchitectContext context)
         {
             _context = context;
@@ -25,7 +23,6 @@ namespace DAL.UnitOfWork
             GameRequest = new GameRequestRepository(_context);
             Winner = new WinnerRepository(_context);
         }
-
         public IUserRepository User { get; private set; }
         public IPlayerRepository Player { get; private set; }
         public IGameRoomRepository GameRoom { get; private set; }
@@ -39,12 +36,10 @@ namespace DAL.UnitOfWork
         public IFriendsListRepository FriendsList { get; private set; }
         public IGameRequestRepository GameRequest { get; private set; }
         public IWinnerRepository Winner { get; private set; }
-
         public async Task Save()
         {
             await _context.SaveChangesAsync();
         }
-
         public void Dispose()
         {
             _context.Dispose();

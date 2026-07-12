@@ -1,44 +1,33 @@
 using System.ComponentModel.DataAnnotations;
-
 namespace DAL.Models
 {
-
     public class Move
     {
         [Key]
-        public int ID { get; set;}
-        
+        public int ID { get; set; }
         [Required]
-        public int PlayerId { get; set;}
-        public virtual Player Player { get; set;}
-
+        public int PlayerId { get; set; }
+        public virtual Player Player { get; set; } = null!;
         [Required]
-        public int GameBoardId { get; set;}
-        public virtual GameBoard GameBoard { get; set;}
-
+        public int GameBoardId { get; set; }
+        public virtual GameBoard GameBoard { get; set; } = null!;
         [Required]
-        public int FromPosition { get; set;}
-
+        public int FromPosition { get; set; }
         [Required]
-        public int ToPosition { get; set;}
-
-        
-        public string MoveType { get; set;}
-
-        public DateTime TimeStamp { get; set;}
+        public int ToPosition { get; set; }
+        public string MoveType { get; set; } = string.Empty;
+        public DateTime TimeStamp { get; set; }
         public Move()
         {
         }
-        public Move(int playerId, int gameBoardId, int fromPos, int toPos, string type,DateTime timestamp)
+        public Move(int playerId, int gameBoardId, int fromPos, int toPos, string type, DateTime timestamp)
         {
             PlayerId = playerId;
             GameBoardId = gameBoardId;
             FromPosition = fromPos;
             ToPosition = toPos;
             MoveType = type;
-            TimeStamp= timestamp;
-
+            TimeStamp = timestamp;
         }
-
     }
 }

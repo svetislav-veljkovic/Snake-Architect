@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using BLL.IServices;
-
 namespace SnakeArchitectApi.Controllers
 {
     [ApiController]
@@ -12,30 +11,22 @@ namespace SnakeArchitectApi.Controllers
     public class FriendController : ControllerBase
     {
         private readonly IFriendService _friendService;
-
         public FriendController(IFriendService friendService)
         {
             _friendService = friendService;
         }
-
         [HttpPost("request/{recipientId}")]
         public async Task<IActionResult> SendFriendRequest(int recipientId)
         {
             var senderId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
             var result = await _friendService.SendFriendRequestAsync(senderId, recipientId);
-
             if (result == null)
                 return NotFound(new { message = "Korisnik nije pronadjen." });
-
             var errorProp = result.GetType().GetProperty("error");
             if (errorProp != null)
                 return BadRequest(new { message = errorProp.GetValue(result)?.ToString() });
-
             return Ok(new { message = "Zahtev za prijateljstvo poslan." });
         }
-
-        // FIX: .Result -> await (blokirajuci .Result moze da izazove
-        // deadlock/lose iskoriscenje thread poola pod opterecenjem).
         [HttpGet("requests")]
         public async Task<IActionResult> GetIncomingRequests()
         {
@@ -43,7 +34,6 @@ namespace SnakeArchitectApi.Controllers
             var requests = await _friendService.GetIncomingRequestsAsync(userId);
             return Ok(requests);
         }
-
         [HttpGet("requests/sent")]
         public async Task<IActionResult> GetSentRequests()
         {
@@ -51,35 +41,27 @@ namespace SnakeArchitectApi.Controllers
             var requests = await _friendService.GetSentRequestsAsync(userId);
             return Ok(requests);
         }
-
         [HttpPost("request/{requestId}/accept")]
         public async Task<IActionResult> AcceptRequest(int requestId)
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
             var result = await _friendService.AcceptRequestAsync(requestId, userId);
-
             if (result == null)
                 return NotFound(new { message = "Zahtjev nije pronadjen." });
-
             var errorProp = result.GetType().GetProperty("error");
             if (errorProp != null && errorProp.GetValue(result)?.ToString() == "Forbid")
                 return Forbid();
-
             return Ok(new { message = "Zahtev prihvacen. Sada ste prijatelji." });
         }
-
         [HttpDelete("request/{requestId}")]
         public async Task<IActionResult> DeclineOrCancelRequest(int requestId)
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
             var success = await _friendService.DeclineOrCancelRequestAsync(requestId, userId);
-
             if (!success)
                 return NotFound(new { message = "Zahtev nije pronadjen ili nemate autorizaciju." });
-
             return Ok(new { message = "Zahtev odbijen/povucen." });
         }
-
         [HttpGet("list")]
         public async Task<IActionResult> GetFriends()
         {
@@ -87,16 +69,13 @@ namespace SnakeArchitectApi.Controllers
             var friends = await _friendService.GetFriendsListAsync(userId);
             return Ok(friends);
         }
-
         [HttpDelete("{friendId}")]
         public async Task<IActionResult> RemoveFriend(int friendId)
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
             var success = await _friendService.RemoveFriendAsync(userId, friendId);
-
             if (!success)
                 return NotFound(new { message = "Niste prijatelji." });
-
             return Ok(new { message = "Prijatelj uklonjen." });
         }
     }

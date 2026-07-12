@@ -1,5 +1,4 @@
-﻿using DAL.Repository.IRepository;
-
+using DAL.Repository.IRepository;
 namespace DAL.UnitOfWork
 {
     public interface IUnitOfWork : IDisposable
@@ -17,7 +16,6 @@ namespace DAL.UnitOfWork
         IFriendsListRepository FriendsList { get; }
         IGameRequestRepository GameRequest { get; }
         IWinnerRepository Winner { get; }
-
         Task Save();
     }
 }

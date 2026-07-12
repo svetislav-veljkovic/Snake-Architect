@@ -1,25 +1,21 @@
 using System.ComponentModel.DataAnnotations;
-
 namespace DAL.Models
 {
-    
     public class Winner
     {
         [Key]
-        public int ID { get; set;}
+        public int ID { get; set; }
         [Required]
-        public int PlayerId { get; set;}
-        public Player? Player { get; set;}
-
-        public DateTime WonAt { get; set;}
-
+        public int PlayerId { get; set; }
+        public Player? Player { get; set; }
+        public DateTime WonAt { get; set; }
         public Winner()
         {
         }
         public Winner(int playerId)
         {
             PlayerId = playerId;
-            WonAt= DateTime.UtcNow;
+            WonAt = DateTime.UtcNow;
         }
     }
 }

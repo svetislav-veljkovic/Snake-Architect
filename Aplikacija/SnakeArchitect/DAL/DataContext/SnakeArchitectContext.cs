@@ -3,7 +3,6 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using DAL.Models;
 using System;
-
 namespace DAL.DataContext
 {
     public class SnakeArchitectContext : DbContext
@@ -12,7 +11,6 @@ namespace DAL.DataContext
             : base(options)
         {
         }
-
         public DbSet<User> Users { get; set; }
         public DbSet<Player> Players { get; set; }
         public DbSet<GameRoom> GameRooms { get; set; }
@@ -24,90 +22,68 @@ namespace DAL.DataContext
         public DbSet<Chat> Chats { get; set; }
         public DbSet<GameRequest> GameRequests { get; set; }
         public DbSet<Winner> Winners { get; set; }
-
         public DbSet<FriendRequest> FriendRequests { get; set; }
         public DbSet<FriendsList> FriendsLists { get; set; }
-
-        // FIX: Postgres kolone tipa "timestamp with time zone" zahtevaju
-        // DateTime.Kind == Utc. Sav kod u aplikaciji vec pise DateTime.UtcNow,
-        // ali ova konverzija je "safety net" da buduci DateTime.Now slip
-        // ne baci exception pri SaveChanges.
         protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
         {
             configurationBuilder.Properties<DateTime>()
                 .HaveConversion<UtcDateTimeConverter>();
         }
-
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
-
             modelBuilder.Entity<GameRoom>()
                 .HasOne(gr => gr.Board)
                 .WithOne(gb => gb.GameRoom)
                 .HasForeignKey<GameBoard>("GameRoomId");
-
             modelBuilder.Entity<Chat>()
                 .HasOne(c => c.Sender)
                 .WithMany(u => u.SentMessages)
                 .HasForeignKey(c => c.SenderId)
                 .OnDelete(DeleteBehavior.Restrict);
-
             modelBuilder.Entity<Chat>()
                 .HasOne(c => c.Recipient)
                 .WithMany(u => u.ReceivedMessages)
                 .HasForeignKey(c => c.RecipientId)
                 .OnDelete(DeleteBehavior.Restrict);
-
             modelBuilder.Entity<GameRequest>()
                 .HasOne(gr => gr.Sender)
                 .WithMany(u => u.SentGameInvitations)
                 .HasForeignKey(gr => gr.SenderId)
                 .OnDelete(DeleteBehavior.Restrict);
-
             modelBuilder.Entity<GameRequest>()
                 .HasOne(gr => gr.Recipient)
                 .WithMany(u => u.ReceivedGameInvitations)
                 .HasForeignKey(gr => gr.RecipientId)
                 .OnDelete(DeleteBehavior.Restrict);
-
             modelBuilder.Entity<FriendRequest>()
                 .HasOne(fr => fr.Sender)
                 .WithMany()
                 .HasForeignKey(fr => fr.SenderId)
                 .OnDelete(DeleteBehavior.Restrict);
-
             modelBuilder.Entity<FriendRequest>()
                 .HasOne(fr => fr.Recipient)
                 .WithMany()
                 .HasForeignKey(fr => fr.RecipientId)
                 .OnDelete(DeleteBehavior.Restrict);
-
             modelBuilder.Entity<FriendsList>()
                 .HasOne(fl => fl.User)
                 .WithMany()
                 .HasForeignKey(fl => fl.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
-
             modelBuilder.Entity<FriendsList>()
                 .HasOne(fl => fl.Friend)
                 .WithMany()
                 .HasForeignKey(fl => fl.FriendId)
                 .OnDelete(DeleteBehavior.Restrict);
-
-            // FIX: spreci duplirane naloge na nivou baze (zatvara race
-            // condition prozor koji postoji u UserService.RegisterAsync
-            // izmedju provere i insert-a).
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.Username)
                 .IsUnique();
-
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.Email)
                 .IsUnique();
         }
     }
-
     public class UtcDateTimeConverter : ValueConverter<DateTime, DateTime>
     {
         public UtcDateTimeConverter() : base(

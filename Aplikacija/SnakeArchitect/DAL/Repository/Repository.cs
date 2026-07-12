@@ -5,14 +5,11 @@ using System;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
-
 namespace DAL.Repository
 {
     public class Repository<T> : IRepository<T> where T : class
     {
-
         protected readonly SnakeArchitectContext _context;
-
         public Repository(SnakeArchitectContext context)
         {
             this._context = context;
@@ -28,9 +25,6 @@ namespace DAL.Repository
         }
         public async Task<IQueryable<T>> GetAll()
         {
-            // FIX: ToListAsync() vraca List<T>, koji NE implementira
-            // IQueryable<T>. Stari (IQueryable<T>) cast bi bacio
-            // InvalidCastException cim bi ga neko pozvao.
             var list = await _context.Set<T>().ToListAsync();
             return list.AsQueryable();
         }
@@ -50,6 +44,5 @@ namespace DAL.Repository
         {
             this._context.Set<T>().Update(obj);
         }
-
     }
 }

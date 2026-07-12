@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
-
 namespace BLL.Services.IServices
 {
     public class RollDiceResult
@@ -13,7 +12,6 @@ namespace BLL.Services.IServices
         public bool IsWinner { get; set; }
         public string Message { get; set; } = string.Empty;
     }
-
     public interface IGameService
     {
         Task<(bool Success, string Message, RollDiceResult? Result)> RollDiceAsync(int roomId, int userId);

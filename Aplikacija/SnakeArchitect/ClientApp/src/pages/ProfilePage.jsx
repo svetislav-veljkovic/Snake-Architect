@@ -29,7 +29,7 @@ function userToForm(user) {
 }
 
 export default function ProfilePage({ onClose }) {
-  const { api, user, refreshProfile } = useAuth();
+  const { api, user, refreshProfile, replaceToken } = useAuth();
 
   const [form, setForm] = useState(() => userToForm(user));
   const [picture, setPicture] = useState(user?.profilePicture || null);
@@ -81,7 +81,7 @@ export default function ProfilePage({ onClose }) {
     setProfileNotice("");
     setSavingPicture(true);
     try {
-      await api.put(`/api/User/${user.userId}`, {
+      const result = await api.put(`/api/User/${user.userId}`, {
         name: form.name,
         lastName: form.lastName,
         username: form.username,
@@ -91,6 +91,7 @@ export default function ProfilePage({ onClose }) {
         gamesWon: 0,
         gamesLost: 0
       });
+      if (result?.token) replaceToken(result.token);
       const refreshed = await refreshProfile();
       setPicture(refreshed?.profilePicture || picture);
       setPictureChanged(false);
@@ -107,7 +108,7 @@ export default function ProfilePage({ onClose }) {
     setProfileNotice("");
     setSavingProfile(true);
     try {
-      await api.put(`/api/User/${user.userId}`, {
+      const result = await api.put(`/api/User/${user.userId}`, {
         name: form.name,
         lastName: form.lastName,
         username: form.username,
@@ -117,8 +118,10 @@ export default function ProfilePage({ onClose }) {
         gamesWon: 0,
         gamesLost: 0
       });
+      if (result?.token) replaceToken(result.token);
       const refreshed = await refreshProfile();
       setPicture(refreshed?.profilePicture || picture);
+      setForm(userToForm(refreshed || { ...form, profilePicture: picture }));
       setPictureChanged(false);
       setProfileNotice("Profil je azuriran.");
       setEditingProfile(false);

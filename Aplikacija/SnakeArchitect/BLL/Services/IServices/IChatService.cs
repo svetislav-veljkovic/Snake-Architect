@@ -1,7 +1,6 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using DAL.DTOs;
-
 namespace BLL.IServices
 {
     public interface IChatService

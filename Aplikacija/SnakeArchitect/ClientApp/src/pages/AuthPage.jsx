@@ -50,9 +50,18 @@ export default function AuthPage() {
     setBusy(true);
     try {
       if (isLogin) {
-        await login(loginForm);
+        await login({
+          username: loginForm.username.trim(),
+          password: loginForm.password
+        });
       } else {
-        await register(registerForm);
+        await register({
+          ...registerForm,
+          name: registerForm.name.trim(),
+          lastName: registerForm.lastName.trim(),
+          username: registerForm.username.trim(),
+          email: registerForm.email.trim()
+        });
         setMode("login");
         setRegisterForm(emptyRegister);
         setNotice("Registracija je uspesna. Mozes da se prijavis.");

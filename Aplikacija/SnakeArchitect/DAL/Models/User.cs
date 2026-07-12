@@ -1,47 +1,33 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
-
 namespace DAL.Models
 {
     public class User
     {
         [Key]
-        public int ID { get; set;}
+        public int ID { get; set; }
         [Required]
-        public string Name { get; set;}
+        public string Name { get; set; } = string.Empty;
         [Required]
-        public string LastName { get; set;}
+        public string LastName { get; set; } = string.Empty;
         [Required]
-        public string Username { get; set;}
-        public string Email { get; set;}
-
+        public string Username { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
         [JsonIgnore]
         [Required]
-        public string Password { get; set;}
-
-        // Profilna slika se cuva kao base64 data URL (npr. "data:image/png;base64,...").
-        // Dovoljno je jednostavno za potrebe projekta i ne zahteva poseban
-        // fajl-storage servis.
+        public string Password { get; set; } = string.Empty;
         public string? ProfilePicture { get; set; }
-
-
-        // FIX: kolekcije su ranije bile bez inicijalne vrednosti. Bez
-        // UseLazyLoadingProxies() u Program.cs i bez eager Include-a, svaki
-        // pristup ovim listama (npr. fr.Sender.SentMessages.Count) bi mogao
-        // da baci NullReferenceException.
         [JsonIgnore]
         public virtual ICollection<Chat> SentMessages { get; set; } = new List<Chat>();
         [JsonIgnore]
         public virtual ICollection<Chat> ReceivedMessages { get; set; } = new List<Chat>();
-
         [JsonIgnore]
         public virtual ICollection<GameRequest> SentGameInvitations { get; set; } = new List<GameRequest>();
         [JsonIgnore]
         public virtual ICollection<GameRequest> ReceivedGameInvitations { get; set; } = new List<GameRequest>();
         public int GamesWon { get; set; }
         public int GamesLost { get; set; }
-
         public User()
         {
         }

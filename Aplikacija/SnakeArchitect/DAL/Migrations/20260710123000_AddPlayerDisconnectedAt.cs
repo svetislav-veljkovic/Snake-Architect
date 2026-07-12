@@ -2,9 +2,7 @@ using System;
 using DAL.DataContext;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
-
 #nullable disable
-
 namespace DAL.Migrations
 {
     [Migration("20260710123000_AddPlayerDisconnectedAt")]
@@ -19,7 +17,6 @@ namespace DAL.Migrations
                 type: "timestamp with time zone",
                 nullable: true);
         }
-
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(

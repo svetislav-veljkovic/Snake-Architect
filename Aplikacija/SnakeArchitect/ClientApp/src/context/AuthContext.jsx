@@ -4,7 +4,6 @@ import { createApi, readJwtUserId } from "../utils/api.js";
 
 const TOKEN_KEY = "snakeArchitect.token";
 const USER_KEY = "snakeArchitect.user";
-
 const AuthContext = createContext(null);
 
 function readStoredUser() {
@@ -21,8 +20,6 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
     const stored = readStoredUser();
     if (stored) return stored;
-    // Fallback: derive the user id straight from the JWT if a user payload
-    // was not yet persisted (for example after a page refresh mid-session).
     const fallbackId = readJwtUserId(localStorage.getItem(TOKEN_KEY));
     return fallbackId ? { id: fallbackId, userId: fallbackId } : null;
   });
@@ -77,7 +74,12 @@ export function AuthProvider({ children }) {
     setUser(null);
   }, []);
 
-  // Keep the stored user payload in sync with whatever is currently in state.
+  const replaceToken = useCallback((nextToken) => {
+    if (!nextToken) return;
+    localStorage.setItem(TOKEN_KEY, nextToken);
+    setToken(nextToken);
+  }, []);
+
   useEffect(() => {
     if (user) {
       localStorage.setItem(USER_KEY, JSON.stringify(user));
@@ -92,10 +94,11 @@ export function AuthProvider({ children }) {
       isAuthenticated: Boolean(token && user),
       login,
       logout,
+      replaceToken,
       refreshProfile,
       register
     }),
-    [api, token, user, login, logout, refreshProfile, register]
+    [api, token, user, login, logout, replaceToken, refreshProfile, register]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

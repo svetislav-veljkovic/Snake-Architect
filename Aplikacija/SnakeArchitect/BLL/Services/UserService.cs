@@ -11,56 +11,60 @@ using System.Linq;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
-
 namespace BLL.Services
 {
     public class UserService : IUserService
     {
         private readonly IUnitOfWork _uow;
         private readonly IConfiguration _config;
-
         public UserService(IUnitOfWork uow, IConfiguration config)
         {
             _uow = uow;
             _config = config;
         }
-
         public async Task<(bool Success, string Message)> RegisterAsync(UserDTO dto)
         {
-            if (_uow.User.Find(u => u.Username == dto.Username).Any())
+            var username = dto.Username?.Trim() ?? string.Empty;
+            var email = dto.Email?.Trim() ?? string.Empty;
+            if (_uow.User.Find(u => u.Username == username).Any())
                 return (false, "Korisnicko ime vec postoji.");
-
-            if (_uow.User.Find(u => u.Email == dto.Email).Any())
+            if (_uow.User.Find(u => u.Email == email).Any())
                 return (false, "Email vec postoji.");
-
             var user = new User(
-                dto.Name,
-                dto.LastName,
-                dto.Username,
-                dto.Email,
+                dto.Name.Trim(),
+                dto.LastName.Trim(),
+                username,
+                email,
                 BCrypt.Net.BCrypt.HashPassword(dto.Password),
                 0, 0
             )
             {
                 ProfilePicture = dto.ProfilePicture
             };
-
             await _uow.User.Add(user);
             await _uow.Save();
             return (true, "Registracija uspesna.");
         }
-
         public Task<(bool Success, string Token, int UserId, string Username)> LoginAsync(string username, string password)
         {
+            username = username?.Trim() ?? string.Empty;
             var user = _uow.User.Find(u => u.Username == username).FirstOrDefault();
-
-            if (user == null || !BCrypt.Net.BCrypt.Verify(password, user.Password))
+            if (user == null || string.IsNullOrWhiteSpace(user.Password))
                 return Task.FromResult((false, string.Empty, 0, string.Empty));
-
+            bool passwordMatches;
+            try
+            {
+                passwordMatches = BCrypt.Net.BCrypt.Verify(password, user.Password);
+            }
+            catch
+            {
+                passwordMatches = false;
+            }
+            if (!passwordMatches)
+                return Task.FromResult((false, string.Empty, 0, string.Empty));
             var token = GenerateJwt(user);
             return Task.FromResult((true, token, user.ID, user.Username));
         }
-
         public async Task<object?> GetUserByIdAsync(int id)
         {
             try
@@ -80,68 +84,61 @@ namespace BLL.Services
             }
             catch { return null; }
         }
-
         public Task<IEnumerable<object>> SearchUsersAsync(string username)
         {
             var users = _uow.User
                 .Find(u => u.Username.Contains(username))
                 .Select(u => new { u.ID, u.Username, u.Name, u.LastName, u.ProfilePicture, u.GamesWon, u.GamesLost })
                 .ToList<object>();
-
             return Task.FromResult<IEnumerable<object>>(users);
         }
-
-        public async Task<(bool Success, string Message)> UpdateUserAsync(int id, int requestingUserId, UserDTO dto)
+        public async Task<(bool Success, string Message, string Token, string Username)> UpdateUserAsync(int id, int requestingUserId, UserDTO dto)
         {
             if (id != requestingUserId)
-                return (false, "FORBIDDEN");
-
+                return (false, "FORBIDDEN", string.Empty, string.Empty);
+            var username = dto.Username?.Trim() ?? string.Empty;
+            var email = dto.Email?.Trim() ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(dto.Name) ||
+                string.IsNullOrWhiteSpace(dto.LastName) ||
+                string.IsNullOrWhiteSpace(username) ||
+                string.IsNullOrWhiteSpace(email))
+                return (false, "Sva polja profila su obavezna.", string.Empty, string.Empty);
+            if (_uow.User.Find(u => u.ID != id && u.Username == username).Any())
+                return (false, "Korisnicko ime vec postoji.", string.Empty, string.Empty);
+            if (_uow.User.Find(u => u.ID != id && u.Email == email).Any())
+                return (false, "Email vec postoji.", string.Empty, string.Empty);
             try
             {
                 var user = await _uow.User.GetOne(id);
-                user.Name = dto.Name;
-                user.LastName = dto.LastName;
-                user.Email = dto.Email;
+                user.Name = dto.Name.Trim();
+                user.LastName = dto.LastName.Trim();
+                user.Username = username;
+                user.Email = email;
                 user.ProfilePicture = dto.ProfilePicture;
-
-                // Napomena: menjanje lozinke ovde ostaje podrzano radi
-                // kompatibilnosti, ali je preporuceno koristi namenski
-                // endpoint /api/User/{id}/password koji zahteva trenutnu
-                // lozinku (vidi ChangePasswordAsync ispod).
-                if (!string.IsNullOrWhiteSpace(dto.Password))
-                    user.Password = BCrypt.Net.BCrypt.HashPassword(dto.Password);
-
                 _uow.User.Update(user);
                 await _uow.Save();
-                return (true, "Profil azuriran.");
+                return (true, "Profil azuriran.", GenerateJwt(user), user.Username);
             }
-            catch { return (false, "Korisnik nije pronadjen."); }
+            catch { return (false, "Korisnik nije pronadjen.", string.Empty, string.Empty); }
         }
-
         public async Task<(bool Success, string Message)> ChangePasswordAsync(int id, int requestingUserId, string currentPassword, string newPassword)
         {
             if (id != requestingUserId)
                 return (false, "FORBIDDEN");
-
             if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 6)
                 return (false, "Nova lozinka mora imati najmanje 6 znakova.");
-
             try
             {
                 var user = await _uow.User.GetOne(id);
-
                 if (!BCrypt.Net.BCrypt.Verify(currentPassword, user.Password))
                     return (false, "Trenutna lozinka nije tacna.");
-
                 user.Password = BCrypt.Net.BCrypt.HashPassword(newPassword);
                 _uow.User.Update(user);
                 await _uow.Save();
-
                 return (true, "Lozinka je uspesno promenjena.");
             }
             catch { return (false, "Korisnik nije pronadjen."); }
         }
-
         public async Task<object?> GetStatsAsync(int id)
         {
             try
@@ -153,9 +150,6 @@ namespace BLL.Services
             }
             catch { return null; }
         }
-
-        // FIX: pomocna klasa za sortiranje istorije partija (izbegavamo
-        // sortiranje po "dynamic" propertiju na anonimnom tipu).
         private class MatchHistoryEntry
         {
             public int RoomId { get; set; }
@@ -166,44 +160,30 @@ namespace BLL.Services
             public bool IsWin { get; set; }
             public List<string> PlayerUsernames { get; set; } = new();
         }
-
-        // FIX: istorija odigranih (zavrsenih) partija izmedju dva korisnika.
-        // Trazimo sve sobe u kojima su OBA korisnika bila igraci, pa medju
-        // njima uzimamo one koje imaju upisanog Winner-a (znaci da je
-        // partija zavrsena), sortirano od najnovije ka najstarijoj.
         public async Task<List<object>> GetMatchHistoryAsync(int userId, int otherUserId, int limit = 5)
         {
             var myRoomIds = _uow.Player.Find(p => p.UserId == userId).Select(p => p.GameRoomId).Distinct().ToList();
             var otherRoomIds = _uow.Player.Find(p => p.UserId == otherUserId).Select(p => p.GameRoomId).Distinct().ToList();
             var commonRoomIds = myRoomIds.Intersect(otherRoomIds).ToList();
-
             if (commonRoomIds.Count == 0) return new List<object>();
-
             var playersInRooms = _uow.Player.Find(p => commonRoomIds.Contains(p.GameRoomId)).ToList();
             var playerIdToRoomId = playersInRooms.ToDictionary(p => p.ID, p => p.GameRoomId);
             var playerIds = playersInRooms.Select(p => p.ID).ToList();
-
             var winners = _uow.Winner.Find(w => playerIds.Contains(w.PlayerId)).ToList();
             var entries = new List<MatchHistoryEntry>();
-
             foreach (var winner in winners)
             {
                 if (!playerIdToRoomId.TryGetValue(winner.PlayerId, out var roomId))
                     continue;
-
                 GameRoom room;
                 Player winnerPlayer;
                 User winnerUser;
-
                 try { room = await _uow.GameRoom.GetOne(roomId); }
                 catch { continue; }
-
                 try { winnerPlayer = await _uow.Player.GetOne(winner.PlayerId); }
                 catch { continue; }
-
                 try { winnerUser = await _uow.User.GetOne(winnerPlayer.UserId); }
                 catch { continue; }
-
                 entries.Add(new MatchHistoryEntry
                 {
                     RoomId = roomId,
@@ -214,7 +194,6 @@ namespace BLL.Services
                     IsWin = winnerPlayer.UserId == userId
                 });
             }
-
             return entries
                 .OrderByDescending(e => e.PlayedAt)
                 .Take(limit)
@@ -229,7 +208,6 @@ namespace BLL.Services
                 })
                 .ToList();
         }
-
         public async Task<List<object>> GetRecentMatchHistoryAsync(int userId, int limit = 5)
         {
             var myRoomIds = _uow.Player
@@ -237,49 +215,36 @@ namespace BLL.Services
                 .Select(p => p.GameRoomId)
                 .Distinct()
                 .ToList();
-
             if (myRoomIds.Count == 0) return new List<object>();
-
             var playersInRooms = _uow.Player
                 .Find(p => myRoomIds.Contains(p.GameRoomId))
                 .ToList();
-
             var playerIdToRoomId = playersInRooms.ToDictionary(p => p.ID, p => p.GameRoomId);
             var playerIds = playersInRooms.Select(p => p.ID).ToList();
-
             var winners = _uow.Winner
                 .Find(w => playerIds.Contains(w.PlayerId))
                 .OrderByDescending(w => w.WonAt)
                 .Take(Math.Max(limit, 1))
                 .ToList();
-
             if (winners.Count == 0) return new List<object>();
-
             var userIds = playersInRooms.Select(p => p.UserId).Distinct().ToList();
             var usersById = _uow.User
                 .Find(u => userIds.Contains(u.ID))
                 .ToDictionary(u => u.ID, u => u.Username);
-
             var entries = new List<MatchHistoryEntry>();
-
             foreach (var winner in winners)
             {
                 if (!playerIdToRoomId.TryGetValue(winner.PlayerId, out var roomId))
                     continue;
-
                 GameRoom room;
                 Player winnerPlayer;
-
                 try { room = await _uow.GameRoom.GetOne(roomId); }
                 catch { continue; }
-
                 try { winnerPlayer = await _uow.Player.GetOne(winner.PlayerId); }
                 catch { continue; }
-
                 var winnerUsername = usersById.TryGetValue(winnerPlayer.UserId, out var username)
                     ? username
                     : $"Korisnik {winnerPlayer.UserId}";
-
                 var playerUsernames = playersInRooms
                     .Where(p => p.GameRoomId == roomId)
                     .OrderBy(p => p.ID)
@@ -288,7 +253,6 @@ namespace BLL.Services
                         : $"Korisnik {p.UserId}")
                     .Distinct()
                     .ToList();
-
                 entries.Add(new MatchHistoryEntry
                 {
                     RoomId = roomId,
@@ -300,7 +264,6 @@ namespace BLL.Services
                     PlayerUsernames = playerUsernames
                 });
             }
-
             return entries
                 .OrderByDescending(e => e.PlayedAt)
                 .Take(limit)
@@ -316,19 +279,16 @@ namespace BLL.Services
                 })
                 .ToList();
         }
-
         private string GenerateJwt(User user)
         {
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
             var claims = new[]
             {
                 new Claim(ClaimTypes.NameIdentifier, user.ID.ToString()),
                 new Claim(ClaimTypes.Name, user.Username),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
-
             var token = new JwtSecurityToken(
                 issuer: _config["Jwt:Issuer"],
                 audience: _config["Jwt:Audience"],
@@ -336,7 +296,6 @@ namespace BLL.Services
                 expires: DateTime.UtcNow.AddDays(7),
                 signingCredentials: creds
             );
-
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
     }
