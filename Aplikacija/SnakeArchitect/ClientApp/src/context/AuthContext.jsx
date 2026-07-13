@@ -1,11 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import React from "react";
 import { createApi, readJwtUserId } from "../utils/api.js";
-
 const TOKEN_KEY = "snakeArchitect.token";
 const USER_KEY = "snakeArchitect.user";
 const AuthContext = createContext(null);
-
 function readStoredUser() {
   try {
     const raw = localStorage.getItem(USER_KEY);
@@ -14,7 +12,6 @@ function readStoredUser() {
     return null;
   }
 }
-
 export function AuthProvider({ children }) {
   const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY));
   const [user, setUser] = useState(() => {
@@ -23,16 +20,13 @@ export function AuthProvider({ children }) {
     const fallbackId = readJwtUserId(localStorage.getItem(TOKEN_KEY));
     return fallbackId ? { id: fallbackId, userId: fallbackId } : null;
   });
-
   const api = useMemo(() => createApi(token), [token]);
-
   const persistSession = useCallback((nextToken, nextUser) => {
     localStorage.setItem(TOKEN_KEY, nextToken);
     localStorage.setItem(USER_KEY, JSON.stringify(nextUser));
     setToken(nextToken);
     setUser(nextUser);
   }, []);
-
   const login = useCallback(async (credentials) => {
     const data = await createApi().post("/api/User/login", credentials);
     const nextUser = {
@@ -43,11 +37,9 @@ export function AuthProvider({ children }) {
     persistSession(data.token, nextUser);
     return data;
   }, [persistSession]);
-
   const register = useCallback(async (payload) => {
     return createApi().post("/api/User/register", payload);
   }, []);
-
   const refreshProfile = useCallback(async () => {
     if (!token || !user?.userId) return null;
     try {
@@ -66,26 +58,22 @@ export function AuthProvider({ children }) {
       return user;
     }
   }, [token, user]);
-
   const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
     setToken(null);
     setUser(null);
   }, []);
-
   const replaceToken = useCallback((nextToken) => {
     if (!nextToken) return;
     localStorage.setItem(TOKEN_KEY, nextToken);
     setToken(nextToken);
   }, []);
-
   useEffect(() => {
     if (user) {
       localStorage.setItem(USER_KEY, JSON.stringify(user));
     }
   }, [user]);
-
   const value = useMemo(
     () => ({
       api,
@@ -100,10 +88,8 @@ export function AuthProvider({ children }) {
     }),
     [api, token, user, login, logout, replaceToken, refreshProfile, register]
   );
-
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
-
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {

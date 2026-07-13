@@ -1,7 +1,6 @@
 import { useState } from "react";
 import React from "react";
 import { useAuth } from "../context/AuthContext.jsx";
-
 function initials(name, fallback) {
   const value = name || fallback || "?";
   const parts = value.split(/\s+/).filter(Boolean);
@@ -9,7 +8,6 @@ function initials(name, fallback) {
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return (parts[0][0] + parts[1][0]).toUpperCase();
 }
-
 function readFileAsDataUrl(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -18,7 +16,6 @@ function readFileAsDataUrl(file) {
     reader.readAsDataURL(file);
   });
 }
-
 function userToForm(user) {
   return {
     name: user?.name || "",
@@ -27,10 +24,8 @@ function userToForm(user) {
     email: user?.email || ""
   };
 }
-
 export default function ProfilePage({ onClose }) {
   const { api, user, refreshProfile, replaceToken } = useAuth();
-
   const [form, setForm] = useState(() => userToForm(user));
   const [picture, setPicture] = useState(user?.profilePicture || null);
   const [pictureChanged, setPictureChanged] = useState(false);
@@ -38,7 +33,6 @@ export default function ProfilePage({ onClose }) {
   const [editingProfile, setEditingProfile] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileNotice, setProfileNotice] = useState("");
-
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
     newPassword: "",
@@ -47,19 +41,16 @@ export default function ProfilePage({ onClose }) {
   const [editingPassword, setEditingPassword] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
   const [passwordNotice, setPasswordNotice] = useState("");
-
   function resetProfileEdit() {
     setForm(userToForm(user));
     setPicture(user?.profilePicture || null);
     setPictureChanged(false);
     setEditingProfile(false);
   }
-
   function resetPasswordEdit() {
     setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
     setEditingPassword(false);
   }
-
   async function handlePictureChange(event) {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -76,7 +67,6 @@ export default function ProfilePage({ onClose }) {
       setProfileNotice(err.message);
     }
   }
-
   async function savePicture() {
     setProfileNotice("");
     setSavingPicture(true);
@@ -102,7 +92,6 @@ export default function ProfilePage({ onClose }) {
       setSavingPicture(false);
     }
   }
-
   async function saveProfile(event) {
     event.preventDefault();
     setProfileNotice("");
@@ -131,11 +120,9 @@ export default function ProfilePage({ onClose }) {
       setSavingProfile(false);
     }
   }
-
   async function savePassword(event) {
     event.preventDefault();
     setPasswordNotice("");
-
     if (passwordForm.newPassword.length < 6) {
       setPasswordNotice("Nova lozinka mora imati najmanje 6 znakova.");
       return;
@@ -144,7 +131,6 @@ export default function ProfilePage({ onClose }) {
       setPasswordNotice("Nova lozinka i potvrda se ne poklapaju.");
       return;
     }
-
     setSavingPassword(true);
     try {
       await api.put(`/api/User/${user.userId}/password`, {
@@ -159,7 +145,6 @@ export default function ProfilePage({ onClose }) {
       setSavingPassword(false);
     }
   }
-
   return (
     <div className="stack">
       <div className="topbar">
@@ -167,7 +152,6 @@ export default function ProfilePage({ onClose }) {
           <h1>Moj profil</h1>
         </div>
       </div>
-
       <div className="profile-layout">
         <section className="panel profile-picture-panel">
           <div className="section-head">
@@ -207,7 +191,6 @@ export default function ProfilePage({ onClose }) {
             <p className="muted">Nova slika je ucitana. Sacuvaj je da bi se prikazala u profilu.</p>
           )}
         </section>
-
         <section className="panel">
           <div className="section-head">
             <div>
@@ -220,7 +203,6 @@ export default function ProfilePage({ onClose }) {
               </button>
             )}
           </div>
-
           {!editingProfile ? (
             <div className="profile-read-grid">
               <span>
@@ -285,7 +267,6 @@ export default function ProfilePage({ onClose }) {
           )}
           {profileNotice && <p className="notice compact-notice">{profileNotice}</p>}
         </section>
-
         <section className="panel">
           <div className="section-head">
             <div>
@@ -298,7 +279,6 @@ export default function ProfilePage({ onClose }) {
               </button>
             )}
           </div>
-
           {!editingPassword ? (
             <p className="muted">Lozinka se ne prikazuje iz bezbednosnih razloga.</p>
           ) : (

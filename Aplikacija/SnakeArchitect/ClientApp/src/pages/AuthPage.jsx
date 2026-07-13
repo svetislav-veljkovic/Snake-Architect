@@ -1,7 +1,6 @@
 import { useState } from "react";
 import React from "react";
 import { useAuth } from "../context/AuthContext.jsx";
-
 const emptyLogin = { username: "", password: "" };
 const emptyRegister = {
   name: "",
@@ -12,13 +11,11 @@ const emptyRegister = {
   gamesWon: 0,
   gamesLost: 0
 };
-
 function validateLogin(form) {
   if (!form.username.trim()) return "Unesi korisnicko ime.";
   if (!form.password.trim()) return "Unesi lozinku.";
   return "";
 }
-
 function validateRegister(form) {
   if (!form.name.trim() || !form.lastName.trim()) return "Ime i prezime su obavezni.";
   if (form.username.trim().length < 3) return "Korisnicko ime mora imati najmanje 3 znaka.";
@@ -26,7 +23,6 @@ function validateRegister(form) {
   if (form.password.length < 6) return "Lozinka mora imati najmanje 6 znakova.";
   return "";
 }
-
 export default function AuthPage() {
   const { login, register } = useAuth();
   const [mode, setMode] = useState("login");
@@ -34,19 +30,15 @@ export default function AuthPage() {
   const [registerForm, setRegisterForm] = useState(emptyRegister);
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
-
   const isLogin = mode === "login";
-
   async function handleSubmit(event) {
     event.preventDefault();
     setNotice("");
-
     const validation = isLogin ? validateLogin(loginForm) : validateRegister(registerForm);
     if (validation) {
       setNotice(validation);
       return;
     }
-
     setBusy(true);
     try {
       if (isLogin) {
@@ -72,7 +64,6 @@ export default function AuthPage() {
       setBusy(false);
     }
   }
-
   return (
     <main className="auth-screen">
       <section className="auth-panel">
@@ -83,7 +74,6 @@ export default function AuthPage() {
             <h1>{isLogin ? "Prijava" : "Registracija"}</h1>
           </div>
         </div>
-
         <div className="segmented">
           <button className={isLogin ? "active" : ""} onClick={() => setMode("login")}>
             Login
@@ -92,7 +82,6 @@ export default function AuthPage() {
             Register
           </button>
         </div>
-
         <form className="stack" onSubmit={handleSubmit}>
           {isLogin ? (
             <>
@@ -172,12 +161,10 @@ export default function AuthPage() {
               </label>
             </div>
           )}
-
           <button className="primary" disabled={busy}>
             {busy ? "Sacekaj..." : isLogin ? "Prijavi se" : "Napravi nalog"}
           </button>
         </form>
-
         {notice && <p className="notice">{notice}</p>}
       </section>
     </main>

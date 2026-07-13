@@ -6,7 +6,6 @@
   padding: 0;
   cursor: pointer;
 }
-
 .avatar {
   display: grid;
   place-items: center;
@@ -17,49 +16,41 @@
   font-weight: 900;
   flex-shrink: 0;
 }
-
 .avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
-
 .avatar-sm {
   width: 38px;
   height: 38px;
   font-size: 0.78rem;
 }
-
 .avatar-lg {
   width: 96px;
   height: 96px;
   font-size: 1.6rem;
 }
-
 .profile-layout {
   display: grid;
   gap: 16px;
   max-width: 720px;
 }
-
 .profile-avatar-row {
   display: flex;
   align-items: center;
   gap: 16px;
 }
-
 .profile-upload {
   display: inline-flex;
   align-items: center;
   cursor: pointer;
 }
-
 .profile-read-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
-
 .profile-read-grid span {
   display: grid;
   gap: 4px;
@@ -68,17 +59,14 @@
   padding: 11px 12px;
   background: #f8fbff;
 }
-
 .profile-read-grid strong {
   overflow-wrap: anywhere;
 }
-
 @media (max-width: 560px) {
   .profile-avatar-row {
     flex-direction: column;
     align-items: flex-start;
   }
-
   .profile-read-grid {
     grid-template-columns: 1fr;
   }

@@ -1,6 +1,5 @@
 import { useState } from "react";
 import React from "react";
-
 function StatusDot({ online }) {
   return (
     <span
@@ -9,7 +8,6 @@ function StatusDot({ online }) {
     />
   );
 }
-
 export default function FriendsPanel({
   friends,
   incomingRequests,
@@ -27,16 +25,13 @@ export default function FriendsPanel({
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState("search");
   const requestCount = incomingRequests.length + sentRequests.length;
-
   function isOnline(userId) {
     return Boolean(onlineUserIds && onlineUserIds.has(userId));
   }
-
   function handleSearch(event) {
     event.preventDefault();
     onSearchUsers(query);
   }
-
   return (
     <div className="panel social-panel social-tabs-panel">
       <div className="section-head">
@@ -44,7 +39,6 @@ export default function FriendsPanel({
           <h2>Prijatelji</h2>
         </div>
       </div>
-
       <div className="social-tabs" role="tablist" aria-label="Prijatelji">
         <button
           className={activeTab === "search" ? "active" : ""}
@@ -69,7 +63,6 @@ export default function FriendsPanel({
           {requestCount > 0 && <span className="tab-badge">{requestCount}</span>}
         </button>
       </div>
-
       <div className="social-tab-content">
         {activeTab === "search" && (
           <>
@@ -81,7 +74,6 @@ export default function FriendsPanel({
               />
               <button className="icon-button" type="submit">Trazi</button>
             </form>
-
             <div className="mini-list search-results social-scroll-list">
               {searchResults.map((candidate) => (
                 <div className="list-row" key={candidate.id ?? candidate.userId ?? candidate.username}>
@@ -104,7 +96,6 @@ export default function FriendsPanel({
             </div>
           </>
         )}
-
         {activeTab === "friends" && (
           <div className="mini-list social-scroll-list">
             {friends.length === 0 && (
@@ -129,7 +120,6 @@ export default function FriendsPanel({
             ))}
           </div>
         )}
-
         {activeTab === "requests" && (
           <div className="mini-list social-scroll-list">
             {incomingRequests.length === 0 && sentRequests.length === 0 && (
